@@ -35,6 +35,7 @@
             this.browseButton = new System.Windows.Forms.Button();
             this.outputPath = new System.Windows.Forms.TextBox();
             this.parseButton = new System.Windows.Forms.Button();
+            this.openLogButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // logContent
@@ -72,16 +73,17 @@
             // status
             // 
             this.status.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.status.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.status.Location = new System.Drawing.Point(298, 13);
             this.status.Name = "status";
             this.status.Size = new System.Drawing.Size(204, 23);
             this.status.TabIndex = 3;
-            this.status.TextAlign = System.Drawing.ContentAlignment.TopCenter;
+            this.status.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // browseButton
             // 
             this.browseButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.browseButton.Location = new System.Drawing.Point(13, 529);
+            this.browseButton.Location = new System.Drawing.Point(13, 527);
             this.browseButton.Name = "browseButton";
             this.browseButton.Size = new System.Drawing.Size(122, 28);
             this.browseButton.TabIndex = 4;
@@ -93,7 +95,7 @@
             // 
             this.outputPath.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.outputPath.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.outputPath.Location = new System.Drawing.Point(148, 532);
+            this.outputPath.Location = new System.Drawing.Point(148, 530);
             this.outputPath.Name = "outputPath";
             this.outputPath.Size = new System.Drawing.Size(354, 22);
             this.outputPath.TabIndex = 5;
@@ -112,11 +114,23 @@
             this.parseButton.UseVisualStyleBackColor = true;
             this.parseButton.Click += new System.EventHandler(this.parseButton_Click);
             // 
+            // openLogButton
+            // 
+            this.openLogButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.openLogButton.Location = new System.Drawing.Point(12, 583);
+            this.openLogButton.Name = "openLogButton";
+            this.openLogButton.Size = new System.Drawing.Size(122, 28);
+            this.openLogButton.TabIndex = 6;
+            this.openLogButton.Text = "Open Log";
+            this.openLogButton.UseVisualStyleBackColor = true;
+            this.openLogButton.Click += new System.EventHandler(this.openLogButton_Click);
+            // 
             // Input
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(523, 568);
+            this.ClientSize = new System.Drawing.Size(523, 623);
+            this.Controls.Add(this.openLogButton);
             this.Controls.Add(this.outputPath);
             this.Controls.Add(this.browseButton);
             this.Controls.Add(this.status);
@@ -140,6 +154,7 @@
         private System.Windows.Forms.Label status;
         private System.Windows.Forms.Button browseButton;
         private System.Windows.Forms.TextBox outputPath;
+        private System.Windows.Forms.Button openLogButton;
     }
 }
 

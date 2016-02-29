@@ -96,7 +96,7 @@ namespace CiscoAsaNetAclParser
             {
                 LogEventToFile(string.Format("Writing result to '{0}'.", outputPath.Text), StatusType.Information);
 
-                File.WriteAllText(outputPath.Text, data);
+                File.WriteAllLines(outputPath.Text, result.GetCommaDelimitedResults());
 
                 RaiseCompleteStatus();
 
@@ -143,7 +143,8 @@ namespace CiscoAsaNetAclParser
             var browser = new FolderBrowserDialog()
             {
                 Description = "Browse for a location to store the output file.",
-                ShowNewFolderButton = true
+                ShowNewFolderButton = true,
+                RootFolder = Environment.SpecialFolder.Programs
             };
 
             browser.ShowDialog();
@@ -182,15 +183,15 @@ namespace CiscoAsaNetAclParser
 
         void UpdateStatus(string messageText, StatusType statusType, Color foregroundColor)
         {
-            if (!string.IsNullOrEmpty(messageText))
-                MessageBox.Show(messageText, statusType.ToString());
-
             this.status.ForeColor = foregroundColor;
 
             if (statusType == StatusType.Information || statusType == StatusType.None)
                 status.Text = null;
             else
-                this.status.Text = status.ToString();
+                this.status.Text = statusType.ToString();
+
+            if (!string.IsNullOrEmpty(messageText))
+                MessageBox.Show(messageText, statusType.ToString());
         }
         #endregion
 
@@ -205,8 +206,12 @@ namespace CiscoAsaNetAclParser
 
         void LogEventToFile(string text, StatusType statusType)
         {
-            File.WriteAllText(_logFilePath, string.Format("{0} {1} - {2}", DateTime.Now, statusType.ToString(), text));
+            File.AppendAllText(_logFilePath, string.Format("{0} {1} - {2}", DateTime.Now, statusType.ToString(), text));
         }
 
+        private void openLogButton_Click(object sender, EventArgs e)
+        {
+            Process.Start(_logFilePath);
+        }
     }
 }

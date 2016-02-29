@@ -53,6 +53,12 @@
     <Compile Include="Test.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CiscoAsaNetAclParser\CiscoAsaNetAclParser.csproj">
+      <Project>{a7365fbd-19ee-4146-bcf3-6ef0618ca540}</Project>
+      <Name>CiscoAsaNetAclParser</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
       <ItemGroup>
