@@ -31,73 +31,94 @@ namespace CiscoAsaNetAclParser
              nat (inside,outside) static Someone2
         */
 
-        List<ObjectNetwork> _objectNetworks;
-        public List<ObjectNetwork> ObjectNetworks
-        {
-            get
-            {
-                if (_objectNetworks == null)
-                    _objectNetworks = new List<ObjectNetwork>();
-
-                return _objectNetworks;
-            }
-            set
-            {
-                _objectNetworks = value;
-            }
-        }
-
         public ParseResult Parse(string[] lines)
         {
             var result = new ParseResult();
 
-            CollectObjectNetworkChecklist(lines);
+            result.Results = CollectObjectNetworkChecklist(lines);
+            string currentObjectNetwork = "";
 
             //Processing the actual object network detail
-            foreach (var objectNetwork in ObjectNetworks)
+            try
             {
-                foreach(var index in objectNetwork.Indices)
+                foreach (var objectNetwork in result.Results)
                 {
-                    var skippedGroup = lines.Skip(index);
-                    bool firstLine = true;
-
-                    foreach (var line in skippedGroup)
-                    { 
-                        if (line == objectNetwork.OriginalName)
-                        {
-                            firstLine = false;
-                            continue;
-                        }
-                        else if (line != objectNetwork.OriginalName && firstLine)
-                            throw new Exception(string.Format("Collection out of sync for parsing. Attempted to collect field data for '{0}', but received data for '{1}'.", objectNetwork.OriginalName, line));
-                        else if (line.Contains(ObjectNetwork.ObjectNetworkTag) && !firstLine) //Found the end of the configuration
-                            break;
-
-                        if (line.Contains(ObjectNetwork.HostTag))
-                            GetHost(objectNetwork, line);
-                        else if (line.Contains(ObjectNetwork.SubnetTag))
-                            GetSubnet(objectNetwork, line);
-                        else if (line.Contains(ObjectNetwork.NatTag))
-                        {
-
-                        }
-                    }
+                    currentObjectNetwork = objectNetwork.Name;
+                    ParseInternal(objectNetwork, lines);
                 }
-            }
 
-            result.Failed = false;
-            result.Title = "Completed task";
-            result.Results = ObjectNetworks;
+                result.Failed = false;
+                result.Title = "Completed task";
+            }
+            catch(Exception e)
+            {
+                result.Failed = true;
+                result.Title = string.Format("An error occurred while collecting data for the object network '{0}'.", currentObjectNetwork);
+                result.Messages.Add(e.ToString());
+            }
 
             return result;
         }
 
-        private static void GetHost(ObjectNetwork objectNetwork, string line)
+        void ParseInternal(ObjectNetwork objectNetwork, string[] lines)
+        {
+            foreach (var index in objectNetwork.Indices)
+            {
+                var skippedGroup = lines.Skip(index);
+                bool firstLine = true;
+
+                foreach (var line in skippedGroup)
+                {
+                    bool groupComplete = AddConfiguration(objectNetwork, line);
+
+
+
+                    if (groupComplete)
+                        break;
+                }
+            }
+        }
+
+        bool AddConfiguration(ObjectNetwork objectNetwork, string line)
+        {
+            bool groupComplete = false;
+
+            switch (FindTagType(line))
+            {
+                case TagOption.ObjectNetwork:
+                    if (line == objectNetwork.OriginalName)
+                        groupComplete = false;
+                    else //Found the end of the configuration
+                        groupComplete = true;
+                    break;
+                case TagOption.Host:
+                    GetHost(objectNetwork, line);
+                    break;
+                case TagOption.Subnet:
+                    GetSubnet(objectNetwork, line);
+                    break;
+                case TagOption.Nat:
+                    GetNat(objectNetwork, line);
+                    break;
+                case TagOption.Description:
+                    objectNetwork.Description = line.Replace(ObjectNetwork.DescriptionTag, null).Trim();
+                    break;
+                case TagOption.None:
+                    GetOthers(objectNetwork, line);
+                    break;
+                default:
+                    break;
+            }
+
+            return groupComplete;
+        }
+
+        void GetHost(ObjectNetwork objectNetwork, string line)
         {
             string lineParsed = line.Replace(ObjectNetwork.HostTag, null).Trim();
             IPAddress hostIp = null;
             if (IPAddress.TryParse(lineParsed, out hostIp))
-                objectNetwork.Ip = hostIp;
+                objectNetwork.IP = hostIp;
             else
                 objectNetwork.IPAlias = lineParsed;
         }
@@ -116,7 +137,7 @@ namespace CiscoAsaNetAclParser
                 {
                     if (!foundIp)
                     {
-                        objectNetwork.Ip = subnetIp;
+                        objectNetwork.IP = subnetIp;
                         foundIp = true;
                     }
                     else
@@ -130,29 +151,66 @@ namespace CiscoAsaNetAclParser
             }
         }
 
-        void CollectObjectNetworkChecklist(IEnumerable<string> lines)
+        void GetNat(ObjectNetwork objectNetwork, string line)
+        {
+
+        }
+
+        void GetOthers(ObjectNetwork objectNetwork, string line)
+        {
+            var firstSpace = line.IndexOf(" ", 0);
+            var pair = new KeyValuePair<string, string>(line.Substring(0, firstSpace), line.Substring(firstSpace));
+
+            objectNetwork.AdditionalColumnValues.Add(pair);
+        }
+
+        List<ObjectNetwork> CollectObjectNetworkChecklist(IEnumerable<string> lines)
         {
             var objectNetworkReferences = lines.Where(x => x.Contains(ObjectNetwork.ObjectNetworkTag));
+            var objectNetworks = new List<ObjectNetwork>();
 
             int index = 0;
 
             //Collecting all the starting points for the object networks
             foreach (var header in objectNetworkReferences)
             {
-                if (ObjectNetworks.Any(x => x.OriginalName == header))
+                if (objectNetworks.Any(x => x.OriginalName == header))
                 {
-                    ObjectNetworks.Where(x => x.OriginalName == header).First().Indices.Add(index);
+                    objectNetworks.Where(x => x.OriginalName == header).First().Indices.Add(index);
                     continue;
                 }
-
-                ObjectNetworks.Add(new ObjectNetwork()
+                else
                 {
-                    Name = header.Replace(ObjectNetwork.ObjectNetworkTag, null).Trim(),
-                    OriginalName = header
-                });
+                    var objectNetwork = new ObjectNetwork()
+                    {
+                        Name = header.Replace(ObjectNetwork.ObjectNetworkTag, null).Trim(),
+                        OriginalName = header
+                    };
+                    objectNetwork.Indices.Add(index);
+
+                    objectNetworks.Add(objectNetwork);
+                }
 
                 index++;
             }
+
+            return objectNetworks;
+        }
+
+        TagOption FindTagType(string value)
+        {
+            if (value.Contains(ObjectNetwork.HostTag))
+                return TagOption.Host;
+            else if (value.Contains(ObjectNetwork.SubnetTag))
+                return TagOption.Subnet;
+            else if (value.Contains(ObjectNetwork.NatTag))
+                return TagOption.Nat;
+            else if (value.Contains(ObjectNetwork.DescriptionTag))
+                return TagOption.Description;
+            else if (value.Contains(ObjectNetwork.ObjectNetworkTag))
+                return TagOption.ObjectNetwork;
+            else
+                return TagOption.None;
         }
     }
 }

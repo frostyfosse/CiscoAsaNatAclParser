@@ -7,6 +7,16 @@ using System.Net;
 
 namespace CiscoAsaNetAclParser
 {
+    public enum TagOption
+    {
+        ObjectNetwork,
+        Host,
+        Subnet,
+        Nat,
+        Description,
+        None
+    }
+
     public class ObjectNetwork
     {
         public ObjectNetwork()
@@ -33,10 +43,10 @@ namespace CiscoAsaNetAclParser
         public string Name { get; set; }
         public string OriginalName { get; set; }
         public string IPAlias { get; set; }
-        public IPAddress Ip { get; set; } //This will include the ip configured for either host or subnet. Only one will exist per object network configuration.
+        public IPAddress IP { get; set; } //This will include the ip configured for either host or subnet. Only one will exist per object network configuration.
         public IPAddress Subnet { get; set; }
-        public IPAddress NatIp { get; set; }
-        public string NatIpAlias { get; set; }
+        public IPAddress NatIP { get; set; }
+        public string NatIPAlias { get; set; }
         public string NatType { get; set; } //Example: static, dynamic
         public string NatStatement { get; set; } //List of strings in a parenthesis. Example: (inside, outside)
         public string Description { get; set; }

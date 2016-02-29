@@ -56,10 +56,10 @@ namespace CiscoAsaNetAclParser
                 {
                     ObjectNetwork.ObjectNetworkTag,
                     result.Name,
-                    result.Ip != null ? result.Ip.ToString() : null,
+                    result.IP != null ? result.IP.ToString() : null,
                     result.Subnet != null ? result.Subnet.ToString() : null,
-                    result.NatIp != null ? result.NatIp.ToString() : null,
-                    result.NatIpAlias,
+                    result.NatIP != null ? result.NatIP.ToString() : null,
+                    result.NatIPAlias,
                     result.Description
                 });
 
