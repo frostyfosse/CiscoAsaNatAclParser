@@ -37,15 +37,18 @@ namespace CiscoAsaNetAclParser
 
             result.Results = CollectObjectNetworkChecklist(lines);
             string currentObjectNetwork = "";
+            string currentEvent = "";
 
             //Processing the actual object network detail
             try
             {
-                foreach (var objectNetwork in result.Results)
-                {
-                    currentObjectNetwork = objectNetwork.Name;
-                    ParseInternal(objectNetwork, lines);
-                }
+                //First pass
+                currentEvent = "Processing first pass of object networks to collect any available configurations.";
+                ParseCollection(result.Results, lines, true, out currentObjectNetwork);
+
+                //Second pass for aliases
+                currentEvent = "Processing second pass of object networks to translate any aliases.";
+                ParseCollection(result.Results, lines, false, out currentObjectNetwork);
 
                 result.Failed = false;
                 result.Title = "Completed task";
@@ -53,30 +56,62 @@ namespace CiscoAsaNetAclParser
             catch(Exception e)
             {
                 result.Failed = true;
-                result.Title = string.Format("An error occurred while collecting data for the object network '{0}'.", currentObjectNetwork);
+                result.Title = string.Format("An error occurred while {0}. This was for the object network '{1}'.", currentEvent, currentObjectNetwork);
                 result.Messages.Add(e.ToString());
             }
 
             return result;
         }
 
-        void ParseInternal(ObjectNetwork objectNetwork, string[] lines)
+        void ParseCollection(List<ObjectNetwork> objectNetworks, string[] lines, bool firstPass, out string currentObjectNetwork)
         {
+            currentObjectNetwork = "";
+
+            foreach (var objectNetwork in objectNetworks)
+            {
+                currentObjectNetwork = objectNetwork.Name;
+
+                if (firstPass)
+                    ParseConfigurationsForObjectNetwork(objectNetwork, lines);
+                else
+                {
+                    ObjectNetwork aliasNetwork = null;
+
+                    if (!string.IsNullOrEmpty(objectNetwork.IPAlias))
+                    {
+                        aliasNetwork  = GetIpFromAliases(objectNetwork.IPAlias, objectNetworks);
+                        objectNetwork.IP = aliasNetwork.IP;
+                        objectNetwork.Subnet = aliasNetwork.Subnet;
+                    }
+                    if (!string.IsNullOrEmpty(objectNetwork.NatIPAlias))
+                    {
+                        aliasNetwork = GetIpFromAliases(objectNetwork.NatIPAlias, objectNetworks);
+                        objectNetwork.NatIP = aliasNetwork.NatIP;
+                    }
+                }
+            }
+        }
+
+        void ParseConfigurationsForObjectNetwork(ObjectNetwork objectNetwork, string[] lines)
+        {
+            //First pass in collecting all configurations for a specific object network.
             foreach (var index in objectNetwork.Indices)
             {
                 var skippedGroup = lines.Skip(index);
-                bool firstLine = true;
 
                 foreach (var line in skippedGroup)
                 {
                     bool groupComplete = AddConfiguration(objectNetwork, line);
-
-
-
+                    
                     if (groupComplete)
                         break;
                 }
             }
+        }
+
+        ObjectNetwork GetIpFromAliases(string objectNetworkAlias, List<ObjectNetwork> objectNetworks)
+        {
+            return objectNetworks.Where(x => x.Name == objectNetworkAlias).FirstOrDefault();
         }
 
         bool AddConfiguration(ObjectNetwork objectNetwork, string line)
@@ -117,6 +152,7 @@ namespace CiscoAsaNetAclParser
         {
             string lineParsed = line.Replace(ObjectNetwork.HostTag, null).Trim();
             IPAddress hostIp = null;
+
             if (IPAddress.TryParse(lineParsed, out hostIp))
                 objectNetwork.IP = hostIp;
             else
@@ -133,7 +169,7 @@ namespace CiscoAsaNetAclParser
             {
                 IPAddress subnetIp = null;
 
-                if (IPAddress.TryParse(lineParsed, out subnetIp))
+                if (IPAddress.TryParse(stringIp, out subnetIp))
                 {
                     if (!foundIp)
                     {
@@ -153,13 +189,15 @@ namespace CiscoAsaNetAclParser
 
         void GetNat(ObjectNetwork objectNetwork, string line)
         {
-
+            //TODO: Complete this
         }
 
         void GetOthers(ObjectNetwork objectNetwork, string line)
         {
             var firstSpace = line.IndexOf(" ", 0);
-            var pair = new KeyValuePair<string, string>(line.Substring(0, firstSpace), line.Substring(firstSpace));
+
+            var pair = new KeyValuePair<string, string>(line.Substring(0, firstSpace), 
+                                                        line.Substring(firstSpace < 0 ? 0 : firstSpace));
 
             objectNetwork.AdditionalColumnValues.Add(pair);
         }
@@ -169,29 +207,30 @@ namespace CiscoAsaNetAclParser
             var objectNetworkReferences = lines.Where(x => x.Contains(ObjectNetwork.ObjectNetworkTag));
             var objectNetworks = new List<ObjectNetwork>();
 
-            int index = 0;
-
             //Collecting all the starting points for the object networks
-            foreach (var header in objectNetworkReferences)
+            foreach (var header in objectNetworkReferences.Distinct())
             {
-                if (objectNetworks.Any(x => x.OriginalName == header))
+                var objectNetwork = new ObjectNetwork()
                 {
-                    objectNetworks.Where(x => x.OriginalName == header).First().Indices.Add(index);
-                    continue;
-                }
-                else
+                    Name = header.Replace(ObjectNetwork.ObjectNetworkTag, null).Trim(),
+                    OriginalName = header
+                };
+
+                bool firstRound = true;
+                int lastIndex = 0;
+
+                while (true)
                 {
-                    var objectNetwork = new ObjectNetwork()
-                    {
-                        Name = header.Replace(ObjectNetwork.ObjectNetworkTag, null).Trim(),
-                        OriginalName = header
-                    };
-                    objectNetwork.Indices.Add(index);
+                    lastIndex = lines.ToList().IndexOf(objectNetwork.OriginalName, firstRound ? 0 : lastIndex + 1);
 
-                    objectNetworks.Add(objectNetwork);
+                    if (lastIndex == -1)
+                        break;
+
+                    objectNetwork.Indices.Add(lastIndex);
+                    firstRound = false;
                 }
 
-                index++;
+                objectNetworks.Add(objectNetwork);
             }
 
             return objectNetworks;
@@ -207,7 +246,11 @@ namespace CiscoAsaNetAclParser
                 return TagOption.Nat;
             else if (value.Contains(ObjectNetwork.DescriptionTag))
                 return TagOption.Description;
-            else if (value.Contains(ObjectNetwork.ObjectNetworkTag))
+            else if (value.Contains(ObjectNetwork.ObjectNetworkTag) ||
+                     value.Contains(ObjectNetwork.ObjectGroupNetworkTag) ||
+                     value.Contains(ObjectNetwork.AccessGroupTag) ||
+                     value.Contains(ObjectNetwork.ObjectServiceTag) ||
+                     value.Contains(ObjectNetwork.ObjectTag))
                 return TagOption.ObjectNetwork;
             else
                 return TagOption.None;

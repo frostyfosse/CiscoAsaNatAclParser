@@ -2,6 +2,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Net;
 using CiscoAsaNetAclParser;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CiscoAsaNetAclParserTest
 {
@@ -23,6 +25,26 @@ namespace CiscoAsaNetAclParserTest
 
             var parser = new Parser();
             var result = parser.Parse(lines);
+        }
+
+        [TestMethod]
+        public void TestJunk()
+        {
+            var list = new List<string>();
+
+            for (int i = 0; i < 10; i++)
+                list.Add(string.Format("My string"));
+
+            int index = 0;
+            var myIndex = 0;
+
+            while (true)
+            {
+                myIndex = list.IndexOf("My string", index == 0 ? index : myIndex + 1);
+
+                index++;
+            }
+
         }
 
         string[] GetSampleData()

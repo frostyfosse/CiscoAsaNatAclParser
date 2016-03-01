@@ -58,6 +58,9 @@ namespace CiscoAsaNetAclParser
                     result.Name,
                     result.IP != null ? result.IP.ToString() : null,
                     result.Subnet != null ? result.Subnet.ToString() : null,
+                    result.IPAlias,
+                    result.NatStatement,
+                    result.NatType,
                     result.NatIP != null ? result.NatIP.ToString() : null,
                     result.NatIPAlias,
                     result.Description
@@ -80,9 +83,11 @@ namespace CiscoAsaNetAclParser
             "Object Name",
             "Host IP (Internal)",
             "Subnet (Optional)",
+            "Host or Subnet Alias",
             "Nat () Statement",
             "Nat Type",
             "Nat IP",
+            "Nat Alias",
             "Description"
         };
         #endregion

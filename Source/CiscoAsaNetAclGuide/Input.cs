@@ -73,7 +73,7 @@ namespace CiscoAsaNetAclParser
                 return;
             }
 
-            var textArray = data.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+            var textArray = data.Split(new[] { "\r\n","\n" }, StringSplitOptions.RemoveEmptyEntries);
 
             ParseResult result = ManageParser(textArray);
 
@@ -110,8 +110,6 @@ namespace CiscoAsaNetAclParser
                 LogEventToFile(string.Join(" ", title, logDetail), StatusType.Error);
                 RaiseErrorStatus(title, true);
             }
-
-            RaiseInfoStatus("Complete");
         }
 
         ParseResult ManageParser(string[] textArray)
@@ -143,8 +141,7 @@ namespace CiscoAsaNetAclParser
             var browser = new FolderBrowserDialog()
             {
                 Description = "Browse for a location to store the output file.",
-                ShowNewFolderButton = true,
-                RootFolder = Environment.SpecialFolder.Programs
+                ShowNewFolderButton = true
             };
 
             browser.ShowDialog();

@@ -38,6 +38,12 @@ namespace CiscoAsaNetAclParser
         public const string NatTag = "nat";
         public const string DescriptionTag = "description";
 
+        //Values that can be identified at the end of the Object Network configuration collection
+        public const string ObjectGroupNetworkTag = "object-group network";
+        public const string ObjectServiceTag = "object service";
+        public const string ObjectTag = "object";
+        public const string AccessGroupTag = "access-group";
+
         //Aliases are names to other Object Network objects which contain the ip address needed to be referenced.
 
         public string Name { get; set; }
@@ -70,6 +76,20 @@ namespace CiscoAsaNetAclParser
             }
         }
 
-        public List<KeyValuePair<string, string>> AdditionalColumnValues { get; set; }
+        List<KeyValuePair<string, string>> _additionalColumnValues;
+        public List<KeyValuePair<string, string>> AdditionalColumnValues
+        {
+            get
+            {
+                if (_additionalColumnValues == null)
+                    _additionalColumnValues = new List<KeyValuePair<string, string>>();
+
+                return _additionalColumnValues;
+            }
+            set
+            {
+                _additionalColumnValues = value;
+            }
+        }
     }
 }
