@@ -51,11 +51,43 @@ namespace CiscoAsaNetAclParser
         public string IPAlias { get; set; }
         public IPAddress IP { get; set; } //This will include the ip configured for either host or subnet. Only one will exist per object network configuration.
         public IPAddress Subnet { get; set; }
-        public IPAddress NatIP { get; set; }
+        public IPAddress NatIP { get; set; }        
         public string NatIPAlias { get; set; }
         public string NatType { get; set; } //Example: static, dynamic
         public string NatStatement { get; set; } //List of strings in a parenthesis. Example: (inside, outside)
+
+        List<string> _natPorts;
+        public List<string> NatPorts //Anything listed after the NatIP or NatAlias (Whichever was provided)
+        {
+            get
+            {
+                if (_natPorts == null)
+                    _natPorts = new List<string>();
+
+                return _natPorts;
+            }
+            set
+            {
+                _natPorts = value;
+            }
+        }
         public string Description { get; set; }
+
+        StringBuilder _comments;
+        public StringBuilder Comments
+        {
+            get
+            {
+                if (_comments == null)
+                    _comments = new StringBuilder();
+
+                return _comments;
+            }
+            set
+            {
+                _comments = value;
+            }
+        }
 
         /// <summary>
         /// A list of the index numbers where the header name was referenced. This is used later to collect the field level data

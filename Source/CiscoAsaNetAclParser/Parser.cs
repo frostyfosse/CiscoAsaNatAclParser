@@ -76,18 +76,36 @@ namespace CiscoAsaNetAclParser
                 else
                 {
                     ObjectNetwork aliasNetwork = null;
+                    string aliasErrorMessage = "";
 
                     if (!string.IsNullOrEmpty(objectNetwork.IPAlias))
                     {
                         aliasNetwork  = GetIpFromAliases(objectNetwork.IPAlias, objectNetworks);
-                        objectNetwork.IP = aliasNetwork.IP;
-                        objectNetwork.Subnet = aliasNetwork.Subnet;
+
+                        if (aliasNetwork != null)
+                        {
+                            objectNetwork.IP = aliasNetwork.IP;
+                            objectNetwork.Subnet = aliasNetwork.Subnet;
+                        }
+                        else
+                            aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the host or subnet ip.", objectNetwork.IPAlias,
+                                                                                                                                                                      ObjectNetwork.ObjectGroupNetworkTag,
+                                                                                                                                                                      objectNetwork.Name);
                     }
                     if (!string.IsNullOrEmpty(objectNetwork.NatIPAlias))
                     {
                         aliasNetwork = GetIpFromAliases(objectNetwork.NatIPAlias, objectNetworks);
-                        objectNetwork.NatIP = aliasNetwork.NatIP;
+
+                        if (aliasNetwork != null)
+                            objectNetwork.NatIP = aliasNetwork.IP != null ? aliasNetwork.IP : aliasNetwork.NatIP;
+                        else
+                            aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the NatIP.", objectNetwork.NatIPAlias,
+                                                                                                                                                          ObjectNetwork.ObjectGroupNetworkTag,
+                                                                                                                                                          objectNetwork.Name);
                     }
+
+                    if (!string.IsNullOrEmpty(aliasErrorMessage))
+                        objectNetwork.Comments.AppendLine(aliasErrorMessage);
                 }
             }
         }
@@ -189,7 +207,29 @@ namespace CiscoAsaNetAclParser
 
         void GetNat(ObjectNetwork objectNetwork, string line)
         {
-            //TODO: Complete this
+            //nat (inside,outside) static Someone2
+            //nat (inside,outside) static 208.97.227.215
+            //nat (inside,outside) dynamic HPS_Global_DataCenter
+
+            var values = line.Replace(ObjectNetwork.NatTag, null).Trim().Split(' ');
+            IPAddress natIP = null;
+
+            foreach (var value in values)
+            {
+                if (string.IsNullOrEmpty(objectNetwork.NatStatement))
+                    objectNetwork.NatStatement = value.Replace(",", "|");
+                else if (string.IsNullOrEmpty(objectNetwork.NatType))
+                    objectNetwork.NatType = value;
+                else if (objectNetwork.NatIP == null && string.IsNullOrEmpty(objectNetwork.NatIPAlias))
+                {
+                    if (!IPAddress.TryParse(value, out natIP))
+                        objectNetwork.NatIPAlias = value;
+                    else
+                        objectNetwork.NatIP = natIP;
+                }
+                else
+                    objectNetwork.NatPorts.Add(value); //TODO: Figure out how we want to display this information...
+            }
         }
 
         void GetOthers(ObjectNetwork objectNetwork, string line)
@@ -238,19 +278,21 @@ namespace CiscoAsaNetAclParser
 
         TagOption FindTagType(string value)
         {
-            if (value.Contains(ObjectNetwork.HostTag))
+            var trimmedValue = !string.IsNullOrEmpty(value) ? value.Trim() : "";
+
+            if (trimmedValue.StartsWith(ObjectNetwork.HostTag))
                 return TagOption.Host;
-            else if (value.Contains(ObjectNetwork.SubnetTag))
+            else if (trimmedValue.StartsWith(ObjectNetwork.SubnetTag))
                 return TagOption.Subnet;
-            else if (value.Contains(ObjectNetwork.NatTag))
+            else if (trimmedValue.StartsWith(ObjectNetwork.NatTag))
                 return TagOption.Nat;
-            else if (value.Contains(ObjectNetwork.DescriptionTag))
+            else if (trimmedValue.StartsWith(ObjectNetwork.DescriptionTag))
                 return TagOption.Description;
-            else if (value.Contains(ObjectNetwork.ObjectNetworkTag) ||
-                     value.Contains(ObjectNetwork.ObjectGroupNetworkTag) ||
-                     value.Contains(ObjectNetwork.AccessGroupTag) ||
-                     value.Contains(ObjectNetwork.ObjectServiceTag) ||
-                     value.Contains(ObjectNetwork.ObjectTag))
+            else if (trimmedValue.StartsWith(ObjectNetwork.ObjectNetworkTag) ||
+                     trimmedValue.StartsWith(ObjectNetwork.ObjectGroupNetworkTag) ||
+                     trimmedValue.StartsWith(ObjectNetwork.AccessGroupTag) ||
+                     trimmedValue.StartsWith(ObjectNetwork.ObjectServiceTag) ||
+                     trimmedValue.StartsWith(ObjectNetwork.ObjectTag))
                 return TagOption.ObjectNetwork;
             else
                 return TagOption.None;

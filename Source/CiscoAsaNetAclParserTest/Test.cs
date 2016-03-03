@@ -21,10 +21,11 @@ namespace CiscoAsaNetAclParserTest
         [TestMethod]
         public void TestSimpleObjectNetwork()
         {
-            var lines = GetSampleData();
+            var lines = GetSampleDataWithAliasReferences();
 
             var parser = new Parser();
-            var result = parser.Parse(lines);
+            var parseResults = parser.Parse(lines);
+            var results = parseResults.Results;
         }
 
         [TestMethod]
@@ -52,6 +53,24 @@ namespace CiscoAsaNetAclParserTest
             var value = @"object network SuperCool_Object_host
  host 192.168.1.5
  description This is my cool description";
+            var lines = value.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+
+            return lines;
+        }
+
+        string[] GetSampleDataWithAliasReferences()
+        {
+            var value = @"! ####### This is an example of the host option
+object network SuperCool_Object_host
+ host 192.168.1.5
+ description This is my cool description
+ nat (inside,outside) static 208.97.227.215
+object network Someone2
+ host 208.97.227.216
+object network SuperCool_Object_withsubnet
+ subnet 192.168.1.6 255.255.255.0
+ description This one is for subnet style
+ nat (inside,outside) static Someone2";
             var lines = value.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 
             return lines;

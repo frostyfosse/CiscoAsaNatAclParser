@@ -63,7 +63,9 @@ namespace CiscoAsaNetAclParser
                     result.NatType,
                     result.NatIP != null ? result.NatIP.ToString() : null,
                     result.NatIPAlias,
-                    result.Description
+                    string.Join(" ", result.NatPorts),
+                    result.Description,
+                    result.Comments.ToString().Replace("\r\n", null)
                 });
 
                 lines.Add(line);
@@ -88,7 +90,9 @@ namespace CiscoAsaNetAclParser
             "Nat Type",
             "Nat IP",
             "Nat Alias",
-            "Description"
+            "Nat Ports",
+            "Description",
+            "Comments"
         };
         #endregion
     }

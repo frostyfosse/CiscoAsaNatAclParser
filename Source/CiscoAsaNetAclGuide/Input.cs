@@ -96,7 +96,9 @@ namespace CiscoAsaNetAclParser
             {
                 LogEventToFile(string.Format("Writing result to '{0}'.", outputPath.Text), StatusType.Information);
 
-                File.WriteAllLines(outputPath.Text, result.GetCommaDelimitedResults());
+                var linesForFile = result.GetCommaDelimitedResults();
+
+                File.WriteAllLines(outputPath.Text, linesForFile);
 
                 RaiseCompleteStatus();
 
