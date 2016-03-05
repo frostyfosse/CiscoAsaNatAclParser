@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace CiscoAsaNetAclParser
 {
@@ -27,6 +28,7 @@ namespace CiscoAsaNetAclParser
         public string Title { get; set; }
 
         List<ObjectNetwork> _results;
+
         public List<ObjectNetwork> Results
         {
             get

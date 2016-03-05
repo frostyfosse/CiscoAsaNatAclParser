@@ -9,6 +9,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml;
+using System.Xml.Linq;
+using System.Xml.Serialization;
 
 namespace CiscoAsaNetAclParser
 {
@@ -24,8 +27,11 @@ namespace CiscoAsaNetAclParser
             Directory.CreateDirectory(_logFileDirectory);
         }
 
-        static string FileDateFormat = string.Join("", DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
+        static string FileDateFormat = string.Join("", DateTime.Now.Year, 
+                                                       DateTime.Now.Month.ToString().PadLeft(2, '0'), 
+                                                       DateTime.Now.Day.ToString().PadLeft(2, '0'));
         static string _defaultFilename = string.Format("{0}{1}.csv", FormName.Replace(" ", ""), FileDateFormat);
+        static string _defaultXmlFilename = string.Format("{0}{1}.xml", FormName.Replace(" ", ""), FileDateFormat);
         static string _defaultOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Output");
         static string _defaultOutputPath = Path.Combine(_defaultOutputDirectory, _defaultFilename);
         static string _logFileDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
@@ -96,11 +102,21 @@ namespace CiscoAsaNetAclParser
             {
                 LogEventToFile(string.Format("Writing result to '{0}'.", outputPath.Text), StatusType.Information);
 
-                var linesForFile = result.GetCommaDelimitedResults();
+                var directory = Path.GetDirectoryName(outputPath.Text);
+                var xmlFilePath = Path.Combine(directory, _defaultXmlFilename);
+                var csvFilePath = outputPath.Text;
 
+                //CSV File
+                var linesForFile = result.GetCommaDelimitedResults();
                 File.WriteAllLines(outputPath.Text, linesForFile);
 
-                RaiseCompleteStatus();
+                //XML File
+                var serializer = new XmlSerializer(result.Results.GetType(),
+                                                   new XmlRootAttribute(string.Join("", typeof(ObjectNetwork).Name, "s")));
+                var path = File.Create(xmlFilePath);
+                serializer.Serialize(path, result.Results);
+                path.Close();
+                RaiseCompleteStatus(csvFilePath, xmlFilePath);
 
                 Process.Start(outputPath.Text);
             }
@@ -152,9 +168,11 @@ namespace CiscoAsaNetAclParser
         }
 
         #region Status related
-        void RaiseCompleteStatus()
+        void RaiseCompleteStatus(string csvFile, string xmlFile)
         {
-            UpdateStatus(string.Format("Complete. Results written to '{0}'.", outputPath.Text), 
+            UpdateStatus(string.Format("Complete. Results written to '{0}'{1}and {2}.", csvFile,
+                                                                                        Environment.NewLine,
+                                                                                        xmlFile), 
                          StatusType.Complete, 
                          Color.Blue);
         }

@@ -4,6 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Net;
+using System.Xml.Serialization;
+using System.Xml;
+using System.Xml.Schema;
 
 namespace CiscoAsaNetAclParser
 {
@@ -17,8 +20,11 @@ namespace CiscoAsaNetAclParser
         None
     }
 
+    [XmlRoot("ObjectNetworks")]
+    [Serializable]
     public class ObjectNetwork
     {
+
         public ObjectNetwork()
         {
         }
@@ -49,9 +55,52 @@ namespace CiscoAsaNetAclParser
         public string Name { get; set; }
         public string OriginalName { get; set; }
         public string IPAlias { get; set; }
+
+        [XmlIgnore]
         public IPAddress IP { get; set; } //This will include the ip configured for either host or subnet. Only one will exist per object network configuration.
+
+        public string IPAddress
+        {
+            get
+            {
+                if (IP == null)
+                    return null;
+                else
+                    return IP.ToString();
+            }
+            set { }
+        }
+
+        [XmlIgnore]
         public IPAddress Subnet { get; set; }
-        public IPAddress NatIP { get; set; }        
+
+        public string SubnetAddress
+        {
+            get
+            {
+                if (Subnet == null)
+                    return null;
+                else
+                    return Subnet.ToString();
+            }
+            set { }
+        }
+
+        [XmlIgnore]
+        public IPAddress NatIP { get; set; }
+
+        public string NatIPAddress
+        {
+            get
+            {
+                if (NatIP == null)
+                    return null;
+                else
+                    return NatIP.ToString();
+            }
+            set { }
+        }
+
         public string NatIPAlias { get; set; }
         public string NatType { get; set; } //Example: static, dynamic
         public string NatStatement { get; set; } //List of strings in a parenthesis. Example: (inside, outside)
@@ -74,6 +123,8 @@ namespace CiscoAsaNetAclParser
         public string Description { get; set; }
 
         StringBuilder _comments;
+
+        [XmlIgnore]
         public StringBuilder Comments
         {
             get
@@ -93,6 +144,8 @@ namespace CiscoAsaNetAclParser
         /// A list of the index numbers where the header name was referenced. This is used later to collect the field level data
         /// </summary>
         List<int> _indices;
+
+        [XmlIgnore]
         public List<int> Indices
         {
             get
