@@ -22,21 +22,29 @@ namespace CiscoAsaNetAclParser
         public Input()
         {
             InitializeComponent();
-            outputPath.Text = _defaultOutputPath;
             Directory.CreateDirectory(_defaultOutputDirectory);
             Directory.CreateDirectory(_logFileDirectory);
+            accessListFilenameLabel2.Text = AccessListFilename;
+            objectNetworkFilenameLabel2.Text = ObjectNetworkFileName;
+            SelectedOutputDirectory = _defaultOutputDirectory;
+            outputPath.Text = SelectedOutputDirectory;
         }
 
         static string FileDateFormat = string.Join("", DateTime.Now.Year, 
                                                        DateTime.Now.Month.ToString().PadLeft(2, '0'), 
                                                        DateTime.Now.Day.ToString().PadLeft(2, '0'));
-        static string _defaultFilename = string.Format("{0}{1}.csv", FormName.Replace(" ", ""), FileDateFormat);
+        static string _defaultFilename = string.Format("{0}{1}", FormName.Replace(" ", ""), FileDateFormat);
         static string _defaultXmlFilename = string.Format("{0}{1}.xml", FormName.Replace(" ", ""), FileDateFormat);
         static string _defaultOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Output");
+        public static string ObjectNetworkFileName = string.Join("", _defaultFilename, "_", typeof(ObjectNetwork).Name, ".csv");
+        public static string AccessListFilename = string.Join("", _defaultFilename, "_", typeof(AccessList).Name, ".csv");
+
         static string _defaultOutputPath = Path.Combine(_defaultOutputDirectory, _defaultFilename);
         static string _logFileDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
         static string _logFilename = string.Join("", FormName, "_", FileDateFormat, ".log");
         static string _logFilePath = Path.Combine(_logFileDirectory, _logFilename);
+
+        public string SelectedOutputDirectory { get; private set; }
 
         #region event methods
         void clearButton_Click(object sender, EventArgs e)
@@ -69,13 +77,36 @@ namespace CiscoAsaNetAclParser
 
             UpdateStatus(null, StatusType.None, Color.Black);
         }
+
+        void openLogButton_Click(object sender, EventArgs e)
+        {
+            if (!File.Exists(_logFilePath))
+                MessageBox.Show("There is no log activity to display yet.", "Log File", MessageBoxButtons.OK, MessageBoxIcon.Question);
+            else
+                Process.Start(_logFilePath);
+        }
+
+        void browseButton_Click(object sender, EventArgs e)
+        {
+            var browser = new FolderBrowserDialog()
+            {
+                Description = "Browse for a location to store the output files.",
+                ShowNewFolderButton = true,
+                SelectedPath = _defaultOutputDirectory
+            };
+
+            browser.ShowDialog();
+
+            SelectedOutputDirectory = browser.SelectedPath;
+            outputPath.Text = SelectedOutputDirectory;
+        }
         #endregion
 
         void ParseData(string data)
         {
             if (string.IsNullOrEmpty(outputPath.Text))
             {
-                RaiseInfoStatus("The output path cannot be empty.");
+                RaiseWarningStatus("The output path cannot be empty.");
                 return;
             }
 
@@ -85,42 +116,36 @@ namespace CiscoAsaNetAclParser
 
             if (result.Failed)
             {
-                var builder = new StringBuilder();
-
-                if (!string.IsNullOrEmpty(result.Title))
-                    builder.AppendLine(result.Title);
-                if (result.Messages != null)
-                    result.Messages.ForEach(x => builder.AppendLine(x));
-
-                LogEventToFile(builder.ToString(), StatusType.Error);
-                RaiseErrorStatus(result.Title, true);
-
+                WriteAndRaiseFailedResult(result);
                 return;
             }
 
             try
             {
-                LogEventToFile(string.Format("Writing result to '{0}'.", outputPath.Text), StatusType.Information);
+                LogEventToFile(string.Format("Writing result to '{0}'.", SelectedOutputDirectory), StatusType.Information);
 
-                var directory = Path.GetDirectoryName(outputPath.Text);
-                var xmlFilePath = Path.Combine(directory, _defaultXmlFilename);
-                var csvFilePath = outputPath.Text;
+                //Object Network output
+                var objectNetworkFilePath = Path.Combine(SelectedOutputDirectory, ObjectNetworkFileName);
 
-                //CSV File
-                var linesForFile = result.GetCommaDelimitedResults();
-                File.WriteAllLines(outputPath.Text, linesForFile);
+                File.WriteAllLines(objectNetworkFilePath,
+                                   result.GetCommaDelimitedResults(ParseResult.OutputResultType.ObjectNetwork));
 
-                //XML File
-                var serializer = new XmlSerializer(result.Results.GetType(),
-                                                   new XmlRootAttribute(string.Join("", typeof(ObjectNetwork).Name, "s")));
-                var path = File.Create(xmlFilePath);
-                serializer.Serialize(path, result.Results);
-                path.Close();
-                RaiseCompleteStatus(csvFilePath, xmlFilePath);
+                //Access Network output
+                var accessListFilePath = Path.Combine(SelectedOutputDirectory, AccessListFilename);
 
-                Process.Start(outputPath.Text);
+                File.WriteAllLines(accessListFilePath,
+                                   result.GetCommaDelimitedResults(ParseResult.OutputResultType.AccessList));
+
+                //Opening Directory
+                Process.Start(SelectedOutputDirectory);
+
+                //Opening files
+                //Process.Start(objectNetworkFilePath);
+                //Process.Start(accessListFilePath);
+
+                RaiseCompleteStatus(objectNetworkFilePath, accessListFilePath);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 var title = "An error occurred while writing the results to file.";
                 var logDetail = string.Format("{0} {1}. {2}", DateTime.Now, title, e);
@@ -128,6 +153,29 @@ namespace CiscoAsaNetAclParser
                 LogEventToFile(string.Join(" ", title, logDetail), StatusType.Error);
                 RaiseErrorStatus(title, true);
             }
+        }
+
+        void WriteAndRaiseFailedResult(ParseResult result)
+        {
+            var builder = new StringBuilder();
+
+            if (!string.IsNullOrEmpty(result.Title))
+                builder.AppendLine(result.Title);
+            if (result.Messages != null)
+                result.Messages.ForEach(x => builder.AppendLine(x));
+
+            LogEventToFile(builder.ToString(), StatusType.Error);
+            RaiseErrorStatus(result.Title, true);
+        }
+
+        //Not something the user wants
+        void WriteOutputToXml(ParseResult result, string xmlFilePath, string csvFilePath)
+        {
+            var serializer = new XmlSerializer(result.ObjectNetworkResults.GetType(),
+                                               new XmlRootAttribute(string.Join("", typeof(ObjectNetwork).Name, "s")));
+            var path = File.Create(xmlFilePath);
+            serializer.Serialize(path, result.ObjectNetworkResults);
+            path.Close();
         }
 
         ParseResult ManageParser(string[] textArray)
@@ -154,25 +202,12 @@ namespace CiscoAsaNetAclParser
             return result;
         }
 
-        void browseButton_Click(object sender, EventArgs e)
-        {
-            var browser = new FolderBrowserDialog()
-            {
-                Description = "Browse for a location to store the output file.",
-                ShowNewFolderButton = true
-            };
-
-            browser.ShowDialog();
-
-            _defaultOutputPath = browser.SelectedPath;
-        }
-
         #region Status related
-        void RaiseCompleteStatus(string csvFile, string xmlFile)
+        void RaiseCompleteStatus(string objectNetworkFilePath, string accessListFilePath)
         {
-            UpdateStatus(string.Format("Complete. Results written to '{0}'{1}and {2}.", csvFile,
+            UpdateStatus(string.Format("Complete. Results written to '{0}'{1}and {2}.", objectNetworkFilePath,
                                                                                         Environment.NewLine,
-                                                                                        xmlFile), 
+                                                                                        accessListFilePath), 
                          StatusType.Complete, 
                          Color.Blue);
         }
@@ -224,11 +259,6 @@ namespace CiscoAsaNetAclParser
         void LogEventToFile(string text, StatusType statusType)
         {
             File.AppendAllText(_logFilePath, string.Format("{0} {1} - {2}", DateTime.Now, statusType.ToString(), text));
-        }
-
-        private void openLogButton_Click(object sender, EventArgs e)
-        {
-            Process.Start(_logFilePath);
         }
     }
 }

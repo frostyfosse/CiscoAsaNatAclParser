@@ -27,40 +27,65 @@ namespace CiscoAsaNetAclParser
         public bool Failed { get; set; }
         public string Title { get; set; }
 
-        List<ObjectNetwork> _results;
-
-        public List<ObjectNetwork> Results
-        {
-            get
-            {
-                if (_results == null)
-                    _results = new List<ObjectNetwork>();
-
-                return _results;
-            }
-            set
-            {
-                _results = value;
-            }
-        }
 
 
         #region Helper methods and properties
-        public List<string> GetCommaDelimitedResults()
+        public enum OutputResultType
+        {
+            AccessList,
+            ObjectNetwork
+        }
+
+        public List<string> GetCommaDelimitedResults(OutputResultType type)
         {
             var lines = new List<string>();
 
-            lines.Add(GetHeaders());
+            switch (type)
+            {
+                case OutputResultType.AccessList:
+                    GetAccessListResults(lines);
+                    break;
+                case OutputResultType.ObjectNetwork:
+                    GetObjectNetworkResults(lines);
+                    break;
+                default:
+                    throw new Exception(string.Format("'{0}' is an unexpected output result type. Please contact developer to handle this.", type));
+            }
 
-            foreach(var result in Results)
+            return lines;
+        }
+
+        #region ObjectNetwork items
+        List<ObjectNetwork> _objectNetworkResults;
+
+        public List<ObjectNetwork> ObjectNetworkResults
+        {
+            get
+            {
+                if (_objectNetworkResults == null)
+                    _objectNetworkResults = new List<ObjectNetwork>();
+
+                return _objectNetworkResults;
+            }
+            set
+            {
+                _objectNetworkResults = value;
+            }
+        }
+
+        List<string> GetObjectNetworkResults(List<string> lines)
+        {
+            lines.Add(GetObjectNetworkHeaders());
+
+            foreach (var result in ObjectNetworkResults)
             {
                 var line = string.Join(",", new[]
                 {
                     ObjectNetwork.ObjectNetworkTag,
                     result.Name,
-                    result.IP != null ? result.IP.ToString() : null,
-                    result.Subnet != null ? result.Subnet.ToString() : null,
-                    result.IPAlias,
+                    result.IPGroup.IP != null ? result.IPGroup.IP.ToString() : null,
+                    result.IPGroup.Subnet != null ? result.IPGroup.Subnet.ToString() : null,
+                    result.IPGroup.IPAlias,
                     result.NatStatement,
                     result.NatType,
                     result.NatIP != null ? result.NatIP.ToString() : null,
@@ -76,12 +101,12 @@ namespace CiscoAsaNetAclParser
             return lines;
         }
 
-        string GetHeaders()
+        string GetObjectNetworkHeaders()
         {
-            return string.Join(",", _headers);
+            return string.Join(",", _objectNetworkHeaders);
         }
 
-        string[] _headers = new[]
+        string[] _objectNetworkHeaders = new[]
         {
             "Header Prefix (Command Type)",
             "Object Name",
@@ -96,6 +121,43 @@ namespace CiscoAsaNetAclParser
             "Description",
             "Comments"
         };
+        #endregion
+
+        #region AccessList items
+        List<string> GetAccessListResults(List<string> lines)
+        {
+            //throw new NotImplementedException();
+
+            return lines;
+        }
+
+        List<AccessList> _accessListResults;
+
+        public List<AccessList> AccessListResults
+        {
+            get
+            {
+                if (_accessListResults == null)
+                    _accessListResults = new List<AccessList>();
+
+                return _accessListResults;
+            }
+            set
+            {
+                _accessListResults = value;
+            }
+        }
+
+        string GetAccessListHeaders()
+        {
+            return string.Join(",", _accessListHeaders);
+        }
+
+        string[] _accessListHeaders = new[]
+        {
+            ""
+        };
+        #endregion
         #endregion
     }
 }

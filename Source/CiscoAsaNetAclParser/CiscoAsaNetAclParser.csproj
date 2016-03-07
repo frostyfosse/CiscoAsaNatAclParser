@@ -40,6 +40,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AccessList.cs" />
+    <Compile Include="AccessListGroup.cs" />
+    <Compile Include="AclObjectBase.cs" />
+    <Compile Include="IPSubnetGroup.cs" />
     <Compile Include="ObjectNetwork.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="ParseResult.cs" />

@@ -25,7 +25,7 @@ namespace CiscoAsaNetAclParserTest
 
             var parser = new Parser();
             var parseResults = parser.Parse(lines);
-            var results = parseResults.Results;
+            var results = parseResults.ObjectNetworkResults;
         }
 
         [TestMethod]

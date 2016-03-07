@@ -33,9 +33,13 @@
             this.clearButton = new System.Windows.Forms.Button();
             this.status = new System.Windows.Forms.Label();
             this.browseButton = new System.Windows.Forms.Button();
-            this.outputPath = new System.Windows.Forms.TextBox();
             this.parseButton = new System.Windows.Forms.Button();
             this.openLogButton = new System.Windows.Forms.Button();
+            this.outputPath = new System.Windows.Forms.Label();
+            this.objectNetworkFilenameLabel2 = new System.Windows.Forms.Label();
+            this.objectNetworkFilenameLabel1 = new System.Windows.Forms.Label();
+            this.accessListFilenameLabel1 = new System.Windows.Forms.Label();
+            this.accessListFilenameLabel2 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // logContent
@@ -83,23 +87,13 @@
             // browseButton
             // 
             this.browseButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.browseButton.Location = new System.Drawing.Point(13, 527);
+            this.browseButton.Location = new System.Drawing.Point(13, 521);
             this.browseButton.Name = "browseButton";
             this.browseButton.Size = new System.Drawing.Size(122, 28);
             this.browseButton.TabIndex = 4;
             this.browseButton.Text = "Browse";
             this.browseButton.UseVisualStyleBackColor = true;
             this.browseButton.Click += new System.EventHandler(this.browseButton_Click);
-            // 
-            // outputPath
-            // 
-            this.outputPath.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.outputPath.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.outputPath.Location = new System.Drawing.Point(148, 530);
-            this.outputPath.Name = "outputPath";
-            this.outputPath.Size = new System.Drawing.Size(354, 22);
-            this.outputPath.TabIndex = 5;
-            this.outputPath.Text = "My text";
             // 
             // parseButton
             // 
@@ -117,21 +111,78 @@
             // openLogButton
             // 
             this.openLogButton.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.openLogButton.Location = new System.Drawing.Point(12, 583);
+            this.openLogButton.Location = new System.Drawing.Point(201, 458);
             this.openLogButton.Name = "openLogButton";
-            this.openLogButton.Size = new System.Drawing.Size(122, 28);
+            this.openLogButton.Size = new System.Drawing.Size(122, 39);
             this.openLogButton.TabIndex = 6;
             this.openLogButton.Text = "Open Log";
             this.openLogButton.UseVisualStyleBackColor = true;
             this.openLogButton.Click += new System.EventHandler(this.openLogButton_Click);
             // 
+            // outputPath
+            // 
+            this.outputPath.AutoEllipsis = true;
+            this.outputPath.Font = new System.Drawing.Font("Tahoma", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.outputPath.Location = new System.Drawing.Point(141, 521);
+            this.outputPath.Name = "outputPath";
+            this.outputPath.Size = new System.Drawing.Size(361, 28);
+            this.outputPath.TabIndex = 7;
+            this.outputPath.Text = "My path";
+            this.outputPath.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // objectNetworkFilenameLabel2
+            // 
+            this.objectNetworkFilenameLabel2.AutoSize = true;
+            this.objectNetworkFilenameLabel2.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.objectNetworkFilenameLabel2.Location = new System.Drawing.Point(208, 559);
+            this.objectNetworkFilenameLabel2.Name = "objectNetworkFilenameLabel2";
+            this.objectNetworkFilenameLabel2.Size = new System.Drawing.Size(77, 16);
+            this.objectNetworkFilenameLabel2.TabIndex = 8;
+            this.objectNetworkFilenameLabel2.Text = "My filename";
+            this.objectNetworkFilenameLabel2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // objectNetworkFilenameLabel1
+            // 
+            this.objectNetworkFilenameLabel1.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.objectNetworkFilenameLabel1.Location = new System.Drawing.Point(49, 559);
+            this.objectNetworkFilenameLabel1.Name = "objectNetworkFilenameLabel1";
+            this.objectNetworkFilenameLabel1.Size = new System.Drawing.Size(153, 16);
+            this.objectNetworkFilenameLabel1.TabIndex = 9;
+            this.objectNetworkFilenameLabel1.Text = "Object Network Filename";
+            this.objectNetworkFilenameLabel1.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // accessListFilenameLabel1
+            // 
+            this.accessListFilenameLabel1.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.accessListFilenameLabel1.Location = new System.Drawing.Point(49, 584);
+            this.accessListFilenameLabel1.Name = "accessListFilenameLabel1";
+            this.accessListFilenameLabel1.Size = new System.Drawing.Size(153, 16);
+            this.accessListFilenameLabel1.TabIndex = 11;
+            this.accessListFilenameLabel1.Text = "Access List Filename";
+            this.accessListFilenameLabel1.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // accessListFilenameLabel2
+            // 
+            this.accessListFilenameLabel2.AutoSize = true;
+            this.accessListFilenameLabel2.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.accessListFilenameLabel2.Location = new System.Drawing.Point(208, 584);
+            this.accessListFilenameLabel2.Name = "accessListFilenameLabel2";
+            this.accessListFilenameLabel2.Size = new System.Drawing.Size(77, 16);
+            this.accessListFilenameLabel2.TabIndex = 10;
+            this.accessListFilenameLabel2.Text = "My filename";
+            this.accessListFilenameLabel2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
             // Input
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(523, 623);
-            this.Controls.Add(this.openLogButton);
+            this.ClientSize = new System.Drawing.Size(523, 613);
+            this.Controls.Add(this.accessListFilenameLabel1);
+            this.Controls.Add(this.accessListFilenameLabel2);
+            this.Controls.Add(this.objectNetworkFilenameLabel1);
+            this.Controls.Add(this.objectNetworkFilenameLabel2);
             this.Controls.Add(this.outputPath);
+            this.Controls.Add(this.openLogButton);
             this.Controls.Add(this.browseButton);
             this.Controls.Add(this.status);
             this.Controls.Add(this.clearButton);
@@ -153,8 +204,12 @@
         private System.Windows.Forms.Button clearButton;
         private System.Windows.Forms.Label status;
         private System.Windows.Forms.Button browseButton;
-        private System.Windows.Forms.TextBox outputPath;
         private System.Windows.Forms.Button openLogButton;
+        private System.Windows.Forms.Label outputPath;
+        private System.Windows.Forms.Label objectNetworkFilenameLabel2;
+        private System.Windows.Forms.Label objectNetworkFilenameLabel1;
+        private System.Windows.Forms.Label accessListFilenameLabel1;
+        private System.Windows.Forms.Label accessListFilenameLabel2;
     }
 }
 
