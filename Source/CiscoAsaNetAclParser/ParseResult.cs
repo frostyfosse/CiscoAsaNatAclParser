@@ -7,8 +7,20 @@ using System.Xml.Serialization;
 
 namespace CiscoAsaNetAclParser
 {
+    public enum ResultSeverity
+    {
+        None,
+        Errors,
+        Warnings
+    }
+
     public class ParseResult
     {
+        public ParseResult()
+        {
+            CompletionSeverity = ResultSeverity.None;
+        }
+
         List<string> _messages;
         public List<string> Messages
         {
@@ -24,10 +36,8 @@ namespace CiscoAsaNetAclParser
                 _messages = value;
             }
         }
-        public bool Failed { get; set; }
+        public ResultSeverity CompletionSeverity { get; set; }
         public string Title { get; set; }
-
-
 
         #region Helper methods and properties
         public enum OutputResultType
@@ -36,23 +46,17 @@ namespace CiscoAsaNetAclParser
             ObjectNetwork
         }
 
-        public List<string> GetCommaDelimitedResults(OutputResultType type)
+        public IEnumerable<string> GetCommaDelimitedResults(OutputResultType type)
         {
-            var lines = new List<string>();
-
             switch (type)
             {
                 case OutputResultType.AccessList:
-                    GetAccessListResults(lines);
-                    break;
+                    return GetAccessListResults();
                 case OutputResultType.ObjectNetwork:
-                    GetObjectNetworkResults(lines);
-                    break;
+                    return GetObjectNetworkResults();
                 default:
                     throw new Exception(string.Format("'{0}' is an unexpected output result type. Please contact developer to handle this.", type));
             }
-
-            return lines;
         }
 
         #region ObjectNetwork items
@@ -73,8 +77,10 @@ namespace CiscoAsaNetAclParser
             }
         }
 
-        List<string> GetObjectNetworkResults(List<string> lines)
+        IEnumerable<string> GetObjectNetworkResults()
         {
+            var lines = new List<string>();
+
             lines.Add(GetObjectNetworkHeaders());
 
             foreach (var result in ObjectNetworkResults)
@@ -108,37 +114,44 @@ namespace CiscoAsaNetAclParser
 
         string[] _objectNetworkHeaders = new[]
         {
-            "Header Prefix (Command Type)",
-            "Object Name",
-            "Host IP (Internal)",
-            "Subnet (Optional)",
-            "Host or Subnet Alias",
-            "Nat () Statement",
-            "Nat Type",
-            "Nat IP",
-            "Nat Alias",
-            "Nat Ports",
-            "Description",
-            "Comments"
+            "Header Prefix (Command Type)", "Object Name", "Host IP (Internal)", "Subnet (Optional)",
+            "Host or Subnet Alias", "Nat () Statement", "Nat Type", "Nat IP", "Nat Alias", "Nat Ports",
+            "Description", "Comments"
         };
         #endregion
 
         #region AccessList items
-        List<string> GetAccessListResults(List<string> lines)
+        IEnumerable<string> GetAccessListResults()
         {
-            //throw new NotImplementedException();
+            var lines = new List<string>();
+
+            lines.Add(GetAccessListHeaders());
+
+            foreach(var aclCollection in AccessListResults)
+            {
+                foreach(var acl in aclCollection.AccessLists)
+                {
+                    var line = string.Join(",", acl.Sequence, AccessList.AccessListTag, acl.Name, null, null, acl.Type.ToString().ToLower(),
+                                                acl.Permission == AccessListPermission.None ? null : acl.Permission.ToString().ToLower(), acl.Protocol, 
+                                                acl.SourceType, acl.SourceIPGroup.IPAddress, acl.SourceIPGroup.Subnet, acl.SourceIPGroup.IPAlias,
+                                                acl.DestinationType, acl.DestinationIPGroup.IPAddress, acl.DestinationIPGroup.SubnetAddress, acl.DestinationIPGroup.IPAlias,
+                                                acl.PortMatchType, string.Join(" ", acl.Ports), acl.HitCount, acl.Comments.ToString());
+
+                    lines.Add(line);
+                }
+            }
 
             return lines;
         }
 
-        List<AccessList> _accessListResults;
+        List<AccessListCollection> _accessListResults;
 
-        public List<AccessList> AccessListResults
+        public List<AccessListCollection> AccessListResults
         {
             get
             {
                 if (_accessListResults == null)
-                    _accessListResults = new List<AccessList>();
+                    _accessListResults = new List<AccessListCollection>();
 
                 return _accessListResults;
             }
@@ -155,7 +168,10 @@ namespace CiscoAsaNetAclParser
 
         string[] _accessListHeaders = new[]
         {
-            ""
+            "Sequence", "Header", "ACL Name", "Line", "Line_Number", "ACL Type", "Permission", "Protocol",
+            "Source Type", "Source IP", "Source Subnet", "Source Alias",
+            "Destination Type", "Destination IP", "Destination Subnet", "Destination Alias",
+            "Port Match Type", "Ports", "Hit Count", "Comments"
         };
         #endregion
         #endregion

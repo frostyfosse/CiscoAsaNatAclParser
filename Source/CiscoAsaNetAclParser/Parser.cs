@@ -33,93 +33,63 @@ namespace CiscoAsaNetAclParser
 
         public ParseResult Parse(string[] lines)
         {
-            var result = new ParseResult();
+            var args = new ParserArgs(lines);
+            var results = args.Results;
 
-            result.ObjectNetworkResults = CollectObjectNetworkChecklist(lines);
-            string currentObjectNetwork = "";
-            string currentEvent = "";
-
-            //Processing the actual object network detail
             try
             {
-                //First pass
-                currentEvent = "Processing first pass of object networks to collect any available configurations.";
-                ParseCollection(result.ObjectNetworkResults, lines, true, out currentObjectNetwork);
+                //Processing object network
+                ParseObjectNetworkCollection(args);
+                ParseAccessListCollection(args);
 
-                //Second pass for aliases
-                currentEvent = "Processing second pass of object networks to translate any aliases.";
-                ParseCollection(result.ObjectNetworkResults, lines, false, out currentObjectNetwork);
-
-                result.Failed = false;
-                result.Title = "Completed task";
+                results.Title = "Completed task";
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                result.Failed = true;
-                result.Title = string.Format("An error occurred while {0}. This was for the object network '{1}'.", currentEvent, currentObjectNetwork);
-                result.Messages.Add(e.ToString());
+                results.CompletionSeverity = ResultSeverity.Errors;
+                results.Title = string.Format("An error occurred while {0}. This was for the item '{1}'.", args.CurrentEvent, args.CurrentItem);
+                results.Messages.Add(e.ToString());
             }
 
-            return result;
+            return args.Results;
         }
 
-        void ParseCollection(List<ObjectNetwork> objectNetworks, string[] lines, bool firstPass, out string currentObjectNetwork)
+        #region ObjectNetwork methods
+        void ParseObjectNetworkCollection(ParserArgs args)
         {
-            currentObjectNetwork = "";
+            CollectObjectNetworkChecklist(args);
 
-            foreach (var objectNetwork in objectNetworks)
+            for (int i = 0; i < 1; i++)
             {
-                currentObjectNetwork = objectNetwork.Name;
 
-                if (firstPass)
-                    ParseConfigurationsForObjectNetwork(objectNetwork, lines);
-                else
+                foreach (var objectNetwork in args.Results.ObjectNetworkResults)
                 {
-                    ObjectNetwork aliasNetwork = null;
-                    string aliasErrorMessage = "";
+                    args.CurrentItem = objectNetwork.Name;
 
-                    if (!string.IsNullOrEmpty(objectNetwork.IPGroup.IPAlias))
+                    if (i == 0)
                     {
-                        aliasNetwork  = GetIpFromAliases(objectNetwork.IPGroup.IPAlias, objectNetworks);
-
-                        if (aliasNetwork != null)
-                        {
-                            objectNetwork.IPGroup.IP = aliasNetwork.IPGroup.IP;
-                            objectNetwork.IPGroup.Subnet = aliasNetwork.IPGroup.Subnet;
-                        }
-                        else
-                            aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the host or subnet ip.", objectNetwork.IPGroup.IPAlias,
-                                                                                                                                                                      ObjectNetwork.ObjectGroupNetworkTag,
-                                                                                                                                                                      objectNetwork.Name);
+                        args.CurrentEvent = "Processing first pass of object networks to collect any available configurations.";
+                        ParseLinesForObjectNetworkConfigurations(objectNetwork, args);
                     }
-                    if (!string.IsNullOrEmpty(objectNetwork.NatIPAlias))
+                    else
                     {
-                        aliasNetwork = GetIpFromAliases(objectNetwork.NatIPAlias, objectNetworks);
-
-                        if (aliasNetwork != null)
-                            objectNetwork.NatIP = aliasNetwork.IPGroup.IP != null ? aliasNetwork.IPGroup.IP : aliasNetwork.NatIP;
-                        else
-                            aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the NatIP.", objectNetwork.NatIPAlias,
-                                                                                                                                                          ObjectNetwork.ObjectGroupNetworkTag,
-                                                                                                                                                          objectNetwork.Name);
+                        args.CurrentEvent = "Processing second pass of object networks to translate any aliases.";
+                        GetNetworkDetailFromAliases(objectNetwork, args);
                     }
-
-                    if (!string.IsNullOrEmpty(aliasErrorMessage))
-                        objectNetwork.Comments.AppendLine(aliasErrorMessage);
                 }
             }
         }
 
-        void ParseConfigurationsForObjectNetwork(ObjectNetwork objectNetwork, string[] lines)
+        void ParseLinesForObjectNetworkConfigurations(ObjectNetwork focusedObjectNetwork, ParserArgs args)
         {
             //First pass in collecting all configurations for a specific object network.
-            foreach (var index in objectNetwork.Indices)
+            foreach (var index in focusedObjectNetwork.Indices)
             {
-                var skippedGroup = lines.Skip(index);
+                var skippedGroup = args.Lines.Skip(index);
 
                 foreach (var line in skippedGroup)
                 {
-                    bool groupComplete = AddConfiguration(objectNetwork, line);
+                    bool groupComplete = AddConfiguration(focusedObjectNetwork, line);
                     
                     if (groupComplete)
                         break;
@@ -127,43 +97,41 @@ namespace CiscoAsaNetAclParser
             }
         }
 
-        ObjectNetwork GetIpFromAliases(string objectNetworkAlias, List<ObjectNetwork> objectNetworks)
+        #region Get methods
+        void GetNetworkDetailFromAliases(ObjectNetwork focusedObjectNetwork, ParserArgs args)
         {
-            return objectNetworks.Where(x => x.Name == objectNetworkAlias).FirstOrDefault();
-        }
+            string aliasErrorMessage = "";
+            ObjectNetwork aliasNetwork = null;
+            var objectNetworks = args.Results.ObjectNetworkResults;
 
-        bool AddConfiguration(ObjectNetwork objectNetwork, string line)
-        {
-            bool groupComplete = false;
-
-            switch (FindTagType(line))
+            if (!string.IsNullOrEmpty(focusedObjectNetwork.IPGroup.IPAlias))
             {
-                case ObjectNetworkTagOption.ObjectNetwork:
-                    if (line == objectNetwork.OriginalName)
-                        groupComplete = false;
-                    else //Found the end of the configuration
-                        groupComplete = true;
-                    break;
-                case ObjectNetworkTagOption.Host:
-                    GetHost(objectNetwork, line);
-                    break;
-                case ObjectNetworkTagOption.Subnet:
-                    GetSubnet(objectNetwork, line);
-                    break;
-                case ObjectNetworkTagOption.Nat:
-                    GetNat(objectNetwork, line);
-                    break;
-                case ObjectNetworkTagOption.Description:
-                    objectNetwork.Description = line.Replace(ObjectNetwork.DescriptionTag, null).Trim();
-                    break;
-                case ObjectNetworkTagOption.None:
-                    GetOthers(objectNetwork, line);
-                    break;
-                default:
-                    break;
+                aliasNetwork = GetIpFromAliases(focusedObjectNetwork.IPGroup.IPAlias, objectNetworks.ToList());
+
+                if (aliasNetwork != null)
+                {
+                    focusedObjectNetwork.IPGroup.IP = aliasNetwork.IPGroup.IP;
+                    focusedObjectNetwork.IPGroup.Subnet = aliasNetwork.IPGroup.Subnet;
+                }
+                else
+                    aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the host or subnet ip.", focusedObjectNetwork.IPGroup.IPAlias,
+                                                                                                                                                              ObjectNetwork.ObjectGroupNetworkTag,
+                                                                                                                                                              focusedObjectNetwork.Name);
+            }
+            if (!string.IsNullOrEmpty(focusedObjectNetwork.NatIPAlias))
+            {
+                aliasNetwork = GetIpFromAliases(focusedObjectNetwork.NatIPAlias, objectNetworks.ToList());
+
+                if (aliasNetwork != null)
+                    focusedObjectNetwork.NatIP = aliasNetwork.IPGroup.IP != null ? aliasNetwork.IPGroup.IP : aliasNetwork.NatIP;
+                else
+                    aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the NatIP.", focusedObjectNetwork.NatIPAlias,
+                                                                                                                                                  ObjectNetwork.ObjectGroupNetworkTag,
+                                                                                                                                                  focusedObjectNetwork.Name);
             }
 
-            return groupComplete;
+            if (!string.IsNullOrEmpty(aliasErrorMessage))
+                focusedObjectNetwork.Comments.AppendLine(aliasErrorMessage);
         }
 
         void GetHost(ObjectNetwork objectNetwork, string line)
@@ -217,7 +185,7 @@ namespace CiscoAsaNetAclParser
             foreach (var value in values)
             {
                 if (string.IsNullOrEmpty(objectNetwork.NatStatement))
-                    objectNetwork.NatStatement = value.Replace(",", "|");
+                    objectNetwork.NatStatement = string.Format("\"{0}\"", value);
                 else if (string.IsNullOrEmpty(objectNetwork.NatType))
                     objectNetwork.NatType = value;
                 else if (objectNetwork.NatIP == null && string.IsNullOrEmpty(objectNetwork.NatIPAlias))
@@ -242,10 +210,49 @@ namespace CiscoAsaNetAclParser
             objectNetwork.AdditionalColumnValues.Add(pair);
         }
 
-        List<ObjectNetwork> CollectObjectNetworkChecklist(IEnumerable<string> lines)
+        ObjectNetwork GetIpFromAliases(string objectNetworkAlias, List<ObjectNetwork> objectNetworks)
         {
-            var objectNetworkReferences = lines.Where(x => x.Contains(ObjectNetwork.ObjectNetworkTag));
-            var objectNetworks = new List<ObjectNetwork>();
+            return objectNetworks.Where(x => x.Name == objectNetworkAlias).FirstOrDefault();
+        }
+        #endregion
+
+        bool AddConfiguration(ObjectNetwork objectNetwork, string line)
+        {
+            bool groupComplete = false;
+
+            switch (FindTagType(line))
+            {
+                case ObjectNetworkTagOption.ObjectNetwork:
+                    if (line == objectNetwork.OriginalName)
+                        groupComplete = false;
+                    else //Found the end of the configuration
+                        groupComplete = true;
+                    break;
+                case ObjectNetworkTagOption.Host:
+                    GetHost(objectNetwork, line);
+                    break;
+                case ObjectNetworkTagOption.Subnet:
+                    GetSubnet(objectNetwork, line);
+                    break;
+                case ObjectNetworkTagOption.Nat:
+                    GetNat(objectNetwork, line);
+                    break;
+                case ObjectNetworkTagOption.Description:
+                    objectNetwork.Description = line.Replace(ObjectNetwork.DescriptionTag, null).Trim();
+                    break;
+                case ObjectNetworkTagOption.None:
+                    GetOthers(objectNetwork, line);
+                    break;
+                default:
+                    break;
+            }
+
+            return groupComplete;
+        }
+
+        void CollectObjectNetworkChecklist(ParserArgs args)
+        {
+            var objectNetworkReferences = args.Lines.Where(x => x.Contains(ObjectNetwork.ObjectNetworkTag));
 
             //Collecting all the starting points for the object networks
             foreach (var header in objectNetworkReferences.Distinct())
@@ -261,7 +268,7 @@ namespace CiscoAsaNetAclParser
 
                 while (true)
                 {
-                    lastIndex = lines.ToList().IndexOf(objectNetwork.OriginalName, firstRound ? 0 : lastIndex + 1);
+                    lastIndex = args.Lines.ToList().IndexOf(objectNetwork.OriginalName, firstRound ? 0 : lastIndex + 1);
 
                     if (lastIndex == -1)
                         break;
@@ -270,10 +277,8 @@ namespace CiscoAsaNetAclParser
                     firstRound = false;
                 }
 
-                objectNetworks.Add(objectNetwork);
+                args.Results.ObjectNetworkResults.Add(objectNetwork);
             }
-
-            return objectNetworks;
         }
 
         ObjectNetworkTagOption FindTagType(string value)
@@ -297,5 +302,192 @@ namespace CiscoAsaNetAclParser
             else
                 return ObjectNetworkTagOption.None;
         }
+        #endregion
+
+        #region Access-List Methods
+        void ParseAccessListCollection(ParserArgs args)
+        {
+            //access-list outside_cryptomap_8 extended permit ip 10.251.27.0 255.255.255.0 host 10.42.8.233 
+            //access-list jnjvpn_split_tunnel standard permit 10.251.27.0 255.255.255.0 
+            //access-list OpenSys_access_in extended deny ip any4 object DMZ-LAN 
+            //access-list mgmtzone_access_in extended permit udp object HPS_TP_PROD_LAN object-group HPS_remote_offices 
+
+            args.Lines = args.Lines.Where(x => x.StartsWith(AccessList.AccessListTag));
+            
+            ParseAccessListLinesIntoGroups(args);
+
+            foreach (var collection in args.Results.AccessListResults)
+            {
+                foreach(var acl in collection.AccessLists)
+                {
+                    for (int i = 0; i < 1; i++)
+                    {
+                        if (i == 0)
+                            ParseAccessListByType(args, acl);
+                        else
+                        {
+                            //TODO: 2nd pass - Go find alias information....
+                        }
+                    }
+                }
+            }
+        }
+
+        void ParseAccessListByType(ParserArgs args, AccessList acl)
+        {
+            switch (acl.Type)
+            {
+                case AccessListType.Standard:
+                    ParseStandardAccesList(acl, args);
+                    break;
+                case AccessListType.Extended:
+                    ParseExtendedAccessList(acl, args);
+                    break;
+                case AccessListType.Remark:
+                    ParseRemarksAccessList(acl, args);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        void ParseStandardAccesList(AccessList acl, ParserArgs parseArgs)
+        {
+            foreach(var line in acl.LinesToProcess.Skip(1))
+            {
+                IPAddress address;
+
+                if (IPAddress.TryParse(line, out address))
+                {
+                    if (acl.SourceIPGroup.IPAddress == null)
+                        acl.SourceIPGroup.IP = address;
+                    else if (acl.SourceIPGroup.Subnet == null)
+                        acl.SourceIPGroup.Subnet = address;
+                }
+                else
+                {
+                    //TOOD: Figure out if there are other conditions I should be aware of...
+                    if (line == AccessList.HostTag)
+                        continue;
+                    else if (string.IsNullOrEmpty(acl.SourceIPGroup.IPWildCard))
+                        acl.SourceIPGroup.IPWildCard = line;
+                }
+            }
+        }
+
+        void ParseExtendedAccessList(AccessList acl, ParserArgs parseArgs)
+        {
+
+        }
+
+        void ParseRemarksAccessList(AccessList acl, ParserArgs parseArgs)
+        {
+            var value = string.Join(" ", acl.LinesToProcess);
+            acl.Comments.Append(string.Format("\"{0}\"", value));
+        }
+
+        void ParseAccessListLinesIntoGroups(ParserArgs args)
+        {
+            var aclCollections = new List<AccessListCollection>();
+            int sequence = 0;
+
+            foreach (var line in args.Lines)
+            {
+                var split = line.Trim().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
+                var name = split[1];
+                var stringType = split[2];
+                var stringPermission = split[3];
+                var originalName = string.Join(" ", AccessList.AccessListTag, name);
+                var collection = aclCollections.Where(x => x.Name == name).FirstOrDefault();
+                var accessList = new AccessList()
+                {
+                    Name = name,
+                    OriginalName = originalName,
+                    Sequence = sequence++,
+                    Permission = FindAccessListPermission(stringPermission),
+                    LinesToProcess = split.Skip(3)
+                };
+
+                try
+                {
+                    accessList.Type = FindAccessListType(stringType);
+                }
+                catch(Exception)
+                {
+                    if (args.Results.CompletionSeverity != ResultSeverity.Errors)
+                        args.Results.CompletionSeverity = ResultSeverity.Warnings;
+                    args.Results.Messages.Add(string.Format("Unknown ACL Type '{0}' for Access-list '{1}'. This line will be skipped.", stringType, name));
+
+                    continue;
+                }
+
+                if (collection != null)
+                    collection.AccessLists.Add(accessList);
+                else
+                {
+                    collection = new AccessListCollection()
+                    {
+                        Name = name,
+                        OriginalName = originalName
+                    };
+                    collection.AccessLists.Add(accessList);
+                    aclCollections.Add(collection);
+                }
+            }
+
+            args.Results.AccessListResults.AddRange(aclCollections);
+        }
+
+        AccessListType FindAccessListType(string value)
+        {
+            var trimmedValue = value.Trim();
+
+            if (CompareIfMatch(trimmedValue, AccessListType.Extended))
+                return AccessListType.Extended;
+            else if (CompareIfMatch(trimmedValue, AccessListType.Remark))
+                return AccessListType.Remark;
+            else if (CompareIfMatch(trimmedValue, AccessListType.Standard))
+                return AccessListType.Standard;
+            else
+                throw new Exception(string.Format("Unknown access type '{0}'", value));
+        }
+
+        AccessListPermission FindAccessListPermission(string value)
+        {
+            var trimmedValue = value.Trim();
+
+            if (CompareIfMatch(value, AccessListPermission.Deny))
+                return AccessListPermission.Deny;
+            else if (CompareIfMatch(value, AccessListPermission.Permit))
+                return AccessListPermission.Permit;
+            else
+                return AccessListPermission.None;
+        }
+
+        bool CompareIfMatch(string value, AccessListType type, bool ignoreCase = true)
+        {
+            return (string.Compare(value, type.ToString(), ignoreCase) == 0);
+        }
+
+        bool CompareIfMatch(string value, AccessListPermission type, bool ignoreCase = true)
+        {
+            return (string.Compare(value, type.ToString(), ignoreCase) == 0);
+        }
+        #endregion
+    }
+
+    public class ParserArgs
+    {
+        public ParserArgs(IEnumerable<string> lines)
+        {
+            Lines = lines;
+        }
+
+        public string CurrentItem { get; set; }
+        public string CurrentEvent { get; set; }
+        public IEnumerable<string> Lines { get; set; }
+
+        ParseResult _results = new ParseResult();
+        public ParseResult Results { get { return _results; } set { _results = value; } }
     }
 }

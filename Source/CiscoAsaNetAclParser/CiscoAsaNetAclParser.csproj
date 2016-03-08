@@ -41,7 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AccessList.cs" />
-    <Compile Include="AccessListGroup.cs" />
+    <Compile Include="AccessListCollection.cs" />
     <Compile Include="AclObjectBase.cs" />
     <Compile Include="IPSubnetGroup.cs" />
     <Compile Include="ObjectNetwork.cs" />

@@ -114,10 +114,13 @@ namespace CiscoAsaNetAclParser
 
             ParseResult result = ManageParser(textArray);
 
-            if (result.Failed)
+            switch (result.CompletionSeverity)
             {
-                WriteAndRaiseFailedResult(result);
-                return;
+                case ResultSeverity.Errors:
+                    WriteAndRaiseFailedResult(result);
+                    return;
+                default:
+                    break;
             }
 
             try
@@ -125,25 +128,25 @@ namespace CiscoAsaNetAclParser
                 LogEventToFile(string.Format("Writing result to '{0}'.", SelectedOutputDirectory), StatusType.Information);
 
                 //Object Network output
-                var objectNetworkFilePath = Path.Combine(SelectedOutputDirectory, ObjectNetworkFileName);
-
-                File.WriteAllLines(objectNetworkFilePath,
+                File.WriteAllLines(Path.Combine(SelectedOutputDirectory, ObjectNetworkFileName),
                                    result.GetCommaDelimitedResults(ParseResult.OutputResultType.ObjectNetwork));
 
                 //Access Network output
-                var accessListFilePath = Path.Combine(SelectedOutputDirectory, AccessListFilename);
-
-                File.WriteAllLines(accessListFilePath,
+                File.WriteAllLines(Path.Combine(SelectedOutputDirectory, AccessListFilename),
                                    result.GetCommaDelimitedResults(ParseResult.OutputResultType.AccessList));
-
-                //Opening Directory
-                Process.Start(SelectedOutputDirectory);
-
+                
                 //Opening files
                 //Process.Start(objectNetworkFilePath);
                 //Process.Start(accessListFilePath);
 
-                RaiseCompleteStatus(objectNetworkFilePath, accessListFilePath);
+                if (result.CompletionSeverity == ResultSeverity.Warnings)
+                    RaiseCompleteStatus(ObjectNetworkFileName, AccessListFilename, string.Join(Environment.NewLine, "The following warnings occurred:", 
+                                                                                                                    result.Messages));
+                else
+                    RaiseCompleteStatus(ObjectNetworkFileName, AccessListFilename);
+                
+                //Opening Directory
+                Process.Start(SelectedOutputDirectory);
             }
             catch (Exception e)
             {
@@ -194,7 +197,7 @@ namespace CiscoAsaNetAclParser
                 //LogEventToFile(string.Join(" ", title, e), StatusType.Error);
                 //RaiseErrorStatus(string.Join(" ", title, "Please see error logs for details."));
 
-                result.Failed = true;
+                result.CompletionSeverity = ResultSeverity.Errors;
                 result.Title = title;
                 result.Messages.Add(e.ToString());
             }
@@ -203,11 +206,17 @@ namespace CiscoAsaNetAclParser
         }
 
         #region Status related
-        void RaiseCompleteStatus(string objectNetworkFilePath, string accessListFilePath)
+        void RaiseCompleteStatus(string objectNetworkFilePath, string accessListFilePath, string disclaimers = null)
         {
-            UpdateStatus(string.Format("Complete. Results written to '{0}'{1}and {2}.", objectNetworkFilePath,
-                                                                                        Environment.NewLine,
-                                                                                        accessListFilePath), 
+            var files = string.Join(Environment.NewLine, objectNetworkFilePath, accessListFilePath);
+            var mainMessage = string.Format("Complete. Results written to the following files:{0}{1}.", Environment.NewLine,
+                                                                                                        files);
+            var fullMessage = mainMessage;
+
+            if (!string.IsNullOrEmpty(disclaimers))
+                fullMessage = string.Join(Environment.NewLine, mainMessage, disclaimers);
+
+            UpdateStatus(fullMessage,
                          StatusType.Complete, 
                          Color.Blue);
         }

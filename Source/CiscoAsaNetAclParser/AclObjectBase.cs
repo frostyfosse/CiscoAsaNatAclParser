@@ -21,6 +21,7 @@ namespace CiscoAsaNetAclParser
         public const string ObjectServiceTag = "object service";
         public const string ObjectTag = "object";
         public const string AccessGroupTag = "access-group";
+        public const string AccessListTag = "access-list";
 
         //Aliases are names to other Object Network objects which contain the ip address needed to be referenced.
 

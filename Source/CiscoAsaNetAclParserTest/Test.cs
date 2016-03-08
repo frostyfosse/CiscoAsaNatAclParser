@@ -11,17 +11,20 @@ namespace CiscoAsaNetAclParserTest
     public class Test
     {
         [TestMethod]
-        public void TestMethod1()
+        public void TestStandardAccessList()
         {
-            IPAddress address = null;
+            var value = "access-list jnjvpn_split_tunnel standard permit 10.251.27.0 255.255.255.0";
 
-            IPAddress.TryParse("192.168.1.1", out address);
+            var parser = new Parser();
+            var result = parser.Parse(new[] { value });
+
+            Assert.IsTrue(result.AccessListResults.Count() > 0);
         }
 
         [TestMethod]
         public void TestSimpleObjectNetwork()
         {
-            var lines = GetSampleDataWithAliasReferences();
+            var lines = GetSampleObjectNetworkDataWithAliasReferences();
 
             var parser = new Parser();
             var parseResults = parser.Parse(lines);
@@ -33,22 +36,11 @@ namespace CiscoAsaNetAclParserTest
         {
             var list = new List<string>();
 
-            for (int i = 0; i < 10; i++)
-                list.Add(string.Format("My string"));
 
-            int index = 0;
-            var myIndex = 0;
-
-            while (true)
-            {
-                myIndex = list.IndexOf("My string", index == 0 ? index : myIndex + 1);
-
-                index++;
-            }
-
+            Assert.IsTrue(string.Compare("My String", "my string", true) == 0);
         }
 
-        string[] GetSampleData()
+        string[] GetSampleObjectNetworkData()
         {
             var value = @"object network SuperCool_Object_host
  host 192.168.1.5
@@ -58,7 +50,7 @@ namespace CiscoAsaNetAclParserTest
             return lines;
         }
 
-        string[] GetSampleDataWithAliasReferences()
+        string[] GetSampleObjectNetworkDataWithAliasReferences()
         {
             var value = @"! ####### This is an example of the host option
 object network SuperCool_Object_host
@@ -75,5 +67,7 @@ object network SuperCool_Object_withsubnet
 
             return lines;
         }
+
+
     }
 }
