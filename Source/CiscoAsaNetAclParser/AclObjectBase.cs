@@ -15,6 +15,7 @@ namespace CiscoAsaNetAclParser
         public const string SubnetTag = "subnet";
         public const string NatTag = "nat";
         public const string DescriptionTag = "description";
+        public const string IpWildCardPrefix = "any";
 
         //Values that can be identified at the end of the Object Network configuration collection
         public const string ObjectGroupNetworkTag = "object-group network";

@@ -22,6 +22,12 @@ namespace CiscoAsaNetAclParser
 
     public class AccessList : AclObjectBase
     {
+        public const string PortEqualsTag = "eq";
+        public const string PortRangeTag = "range";
+        public const string PortIntervalTag = "interval";
+        public static string[] MatchConditionSymbol = new[] { PortEqualsTag, PortRangeTag, PortIntervalTag };
+        public const string HitCountPrefix = "hitcnt=";
+
         public AccessList()
         {
             SourceIPGroup = new IPSubnetGroup();
@@ -60,5 +66,16 @@ namespace CiscoAsaNetAclParser
         public string HitCount { get; set; }
 
         public IEnumerable<string> LinesToProcess { get; set; }
+
+        public bool HasAliases
+        {
+            get
+            {
+                if (SourceIPGroup.HasAlias || DestinationIPGroup.HasAlias)
+                    return true;
+                else
+                    return false;
+            }
+        }
     }
 }

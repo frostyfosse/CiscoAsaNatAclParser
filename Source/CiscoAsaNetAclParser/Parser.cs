@@ -74,7 +74,7 @@ namespace CiscoAsaNetAclParser
                     else
                     {
                         args.CurrentEvent = "Processing second pass of object networks to translate any aliases.";
-                        GetNetworkDetailFromAliases(objectNetwork, args);
+                        AddNetworkDetailFromAliases(objectNetwork, args);
                     }
                 }
             }
@@ -97,43 +97,7 @@ namespace CiscoAsaNetAclParser
             }
         }
 
-        #region Get methods
-        void GetNetworkDetailFromAliases(ObjectNetwork focusedObjectNetwork, ParserArgs args)
-        {
-            string aliasErrorMessage = "";
-            ObjectNetwork aliasNetwork = null;
-            var objectNetworks = args.Results.ObjectNetworkResults;
-
-            if (!string.IsNullOrEmpty(focusedObjectNetwork.IPGroup.IPAlias))
-            {
-                aliasNetwork = GetIpFromAliases(focusedObjectNetwork.IPGroup.IPAlias, objectNetworks.ToList());
-
-                if (aliasNetwork != null)
-                {
-                    focusedObjectNetwork.IPGroup.IP = aliasNetwork.IPGroup.IP;
-                    focusedObjectNetwork.IPGroup.Subnet = aliasNetwork.IPGroup.Subnet;
-                }
-                else
-                    aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the host or subnet ip.", focusedObjectNetwork.IPGroup.IPAlias,
-                                                                                                                                                              ObjectNetwork.ObjectGroupNetworkTag,
-                                                                                                                                                              focusedObjectNetwork.Name);
-            }
-            if (!string.IsNullOrEmpty(focusedObjectNetwork.NatIPAlias))
-            {
-                aliasNetwork = GetIpFromAliases(focusedObjectNetwork.NatIPAlias, objectNetworks.ToList());
-
-                if (aliasNetwork != null)
-                    focusedObjectNetwork.NatIP = aliasNetwork.IPGroup.IP != null ? aliasNetwork.IPGroup.IP : aliasNetwork.NatIP;
-                else
-                    aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the NatIP.", focusedObjectNetwork.NatIPAlias,
-                                                                                                                                                  ObjectNetwork.ObjectGroupNetworkTag,
-                                                                                                                                                  focusedObjectNetwork.Name);
-            }
-
-            if (!string.IsNullOrEmpty(aliasErrorMessage))
-                focusedObjectNetwork.Comments.AppendLine(aliasErrorMessage);
-        }
-
+        #region Get methods        
         void GetHost(ObjectNetwork objectNetwork, string line)
         {
             string lineParsed = line.Replace(ObjectNetwork.HostTag, null).Trim();
@@ -210,11 +174,47 @@ namespace CiscoAsaNetAclParser
             objectNetwork.AdditionalColumnValues.Add(pair);
         }
 
-        ObjectNetwork GetIpFromAliases(string objectNetworkAlias, List<ObjectNetwork> objectNetworks)
+        ObjectNetwork GetObjectNetworkFromAliases(string objectNetworkAlias, List<ObjectNetwork> objectNetworks)
         {
             return objectNetworks.Where(x => x.Name == objectNetworkAlias).FirstOrDefault();
         }
         #endregion
+
+        void AddNetworkDetailFromAliases(ObjectNetwork focusedObjectNetwork, ParserArgs args)
+        {
+            string aliasErrorMessage = "";
+            ObjectNetwork aliasNetwork = null;
+            var objectNetworks = args.Results.ObjectNetworkResults;
+
+            if (!string.IsNullOrEmpty(focusedObjectNetwork.IPGroup.IPAlias))
+            {
+                aliasNetwork = GetObjectNetworkFromAliases(focusedObjectNetwork.IPGroup.IPAlias, objectNetworks.ToList());
+
+                if (aliasNetwork != null)
+                {
+                    focusedObjectNetwork.IPGroup.IP = aliasNetwork.IPGroup.IP;
+                    focusedObjectNetwork.IPGroup.Subnet = aliasNetwork.IPGroup.Subnet;
+                }
+                else
+                    aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the host or subnet ip.", focusedObjectNetwork.IPGroup.IPAlias,
+                                                                                                                                                              ObjectNetwork.ObjectGroupNetworkTag,
+                                                                                                                                                              focusedObjectNetwork.Name);
+            }
+            if (!string.IsNullOrEmpty(focusedObjectNetwork.NatIPAlias))
+            {
+                aliasNetwork = GetObjectNetworkFromAliases(focusedObjectNetwork.NatIPAlias, objectNetworks.ToList());
+
+                if (aliasNetwork != null)
+                    focusedObjectNetwork.NatIP = aliasNetwork.IPGroup.IP != null ? aliasNetwork.IPGroup.IP : aliasNetwork.NatIP;
+                else
+                    aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the NatIP.", focusedObjectNetwork.NatIPAlias,
+                                                                                                                                                  ObjectNetwork.ObjectGroupNetworkTag,
+                                                                                                                                                  focusedObjectNetwork.Name);
+            }
+
+            if (!string.IsNullOrEmpty(aliasErrorMessage))
+                focusedObjectNetwork.Comments.AppendLine(aliasErrorMessage);
+        }
 
         bool AddConfiguration(ObjectNetwork objectNetwork, string line)
         {
@@ -308,9 +308,9 @@ namespace CiscoAsaNetAclParser
         void ParseAccessListCollection(ParserArgs args)
         {
             //access-list outside_cryptomap_8 extended permit ip 10.251.27.0 255.255.255.0 host 10.42.8.233 
-            //access-list jnjvpn_split_tunnel standard permit 10.251.27.0 255.255.255.0 
             //access-list OpenSys_access_in extended deny ip any4 object DMZ-LAN 
             //access-list mgmtzone_access_in extended permit udp object HPS_TP_PROD_LAN object-group HPS_remote_offices 
+            //access-list jnjvpn_split_tunnel standard permit 10.251.27.0 255.255.255.0 
 
             args.Lines = args.Lines.Where(x => x.StartsWith(AccessList.AccessListTag));
             
@@ -349,6 +349,30 @@ namespace CiscoAsaNetAclParser
                 default:
                     break;
             }
+
+            if (acl.HasAliases)
+            {
+                if (acl.SourceIPGroup.HasAlias)
+                    AddIPAddressToIPGroup(acl.SourceIPGroup, args, acl.Comments);
+                if (acl.DestinationIPGroup.HasAlias)
+                    AddIPAddressToIPGroup(acl.DestinationIPGroup, args, acl.Comments);
+            }
+        }
+
+        void AddIPAddressToIPGroup(IPSubnetGroup group, ParserArgs args, StringBuilder commentBuilder)
+        {
+            var objectNetwork = GetObjectNetworkFromAliases(group.IPAlias, args.Results.ObjectNetworkResults);
+
+            if (objectNetwork == null)
+            {
+                commentBuilder.AppendLine(string.Format("Unable to find IP address from alias '{0}'.", group.IPAlias));
+                return;
+            }
+
+            if (objectNetwork.IPGroup.IP != null)
+                group.IP = objectNetwork.IPGroup.IP;
+            if (objectNetwork.IPGroup.Subnet != null)
+                group.Subnet = objectNetwork.IPGroup.Subnet;
         }
 
         void ParseStandardAccesList(AccessList acl, ParserArgs parseArgs)
@@ -357,12 +381,17 @@ namespace CiscoAsaNetAclParser
             {
                 IPAddress address;
 
-                if (IPAddress.TryParse(line, out address))
+                if (line == AccessList.HostTag)
+                    acl.SourceType = AccessList.HostTag;
+                else if (IPAddress.TryParse(line, out address))
                 {
                     if (acl.SourceIPGroup.IPAddress == null)
                         acl.SourceIPGroup.IP = address;
                     else if (acl.SourceIPGroup.Subnet == null)
+                    {
+                        acl.SourceType = AccessList.SubnetTag;
                         acl.SourceIPGroup.Subnet = address;
+                    }
                 }
                 else
                 {
@@ -377,7 +406,198 @@ namespace CiscoAsaNetAclParser
 
         void ParseExtendedAccessList(AccessList acl, ParserArgs parseArgs)
         {
+            //access-list outside_cryptomap_8 extended permit ip 10.251.27.0 255.255.255.0 host 10.42.8.233 
+            //access-list OpenSys_access_in extended deny ip any4 object DMZ-LAN 
+            //access-list mgmtzone_access_in extended permit udp object HPS_TP_PROD_LAN object-group HPS_remote_offices
 
+            var lines = acl.LinesToProcess.Skip(1).ToList();
+            acl.Protocol = lines[0];
+
+            int sequence = 0;
+            var stepArgs = new AccessListStepArgs() { Acl = acl };
+
+            //access-list inside_access_in extended permit object-group HPSNETMON_GRP object HPSNetMon1 any4 
+            //access-list inside_access_in extended permit object-group client_to_mgmtzone_services any object mgmtzone_servers 
+
+            if (acl.Protocol.StartsWith(AccessList.ObjectTag))
+            {
+                MicroManageExtendedAccessList(acl, lines);
+                return;
+            }
+
+            foreach (var line in lines.Skip(1))
+            {
+                stepArgs.Line = line;
+                IPAddress ip = null;
+
+                if (stepArgs.CollectionType != AccessListStepType.None)
+                    ParseAccessListStepByCollectionType(stepArgs, parseArgs);
+                else if (GetIPAddress(line, out ip))
+                {
+                    if (!acl.SourceIPGroup.HasMinimumIPCriteria)
+                    {
+                        acl.SourceIPGroup.IP = ip;
+                        acl.SourceType = AccessList.SubnetTag;
+                        stepArgs.CollectionType = AccessListStepType.SourceSubnet;
+                    }
+                    else if (!acl.DestinationIPGroup.HasMinimumIPCriteria)
+                    {
+                        acl.DestinationIPGroup.IP = ip;
+                        acl.DestinationType = AccessList.SubnetTag;
+                        stepArgs.CollectionType = AccessListStepType.DestinationSubnet;
+                    }
+                }
+                else if (line.StartsWith(AccessList.ObjectTag))
+                {
+                    if (sequence == 0)
+                    {
+                        acl.SourceType = line;
+                        stepArgs.CollectionType = AccessListStepType.SourceAlias;
+                    }
+                    else
+                    {
+                        acl.DestinationType = line;
+                        stepArgs.CollectionType = AccessListStepType.DestinationAlias;
+                    }
+                }
+                else if (line == AccessList.HostTag)
+                {
+                    if (!acl.SourceIPGroup.HasMinimumIPCriteria)
+                    {
+                        acl.SourceType = line;
+                        stepArgs.CollectionType = AccessListStepType.SourceIPAddress;
+                    }
+                    else
+                    {
+                        acl.DestinationType = line;
+                        stepArgs.CollectionType = AccessListStepType.DestinationIPAddress;
+                    }
+                }
+                else if (line.StartsWith(AccessList.IpWildCardPrefix))
+                {
+                    if (sequence == 0)
+                        acl.SourceIPGroup.IPWildCard = line;
+                    else
+                        acl.DestinationIPGroup.IPWildCard = line;
+                }
+                else if (AccessList.MatchConditionSymbol.ToList().Any(x => x == line.Trim()))
+                {
+                    acl.PortMatchType = line;
+                    bool source = false;
+
+                    if (sequence <= 1 && !string.IsNullOrEmpty(acl.SourceIPGroup.IPWildCard))
+                        source = true;
+                    else if (acl.SourceIPGroup.IPWildCard == acl.DestinationIPGroup.IPWildCard)
+                        source = false;
+                    else if (sequence <= 2 && acl.SourceIPGroup.HasMinimumIPCriteria)
+                        source = true;
+                    else
+                        source = false;
+
+                    if (source)
+                    {
+                        if (line == AccessList.PortRangeTag)
+                            stepArgs.CollectionType = AccessListStepType.SourceRange1;
+                        else
+                            stepArgs.CollectionType = AccessListStepType.SourcePort;
+                    }
+                    else
+                    {
+                        if (line == AccessList.PortRangeTag)
+                            stepArgs.CollectionType = AccessListStepType.DestinationRange1;
+                        else
+                            stepArgs.CollectionType = AccessListStepType.DestinationPort;
+                    }
+                }
+                else if (line.Contains(AccessList.HitCountPrefix))
+                {
+                    acl.HitCount = line.Replace("(", null)
+                                       .Replace(")", null)
+                                       .Split(new[] { "=" }, StringSplitOptions.RemoveEmptyEntries)
+                                       .Last();
+                }
+                else
+                    stepArgs.CollectionType = AccessListStepType.DestinationPort;
+
+                sequence++;
+            }
+        }
+
+        private static void MicroManageExtendedAccessList(AccessList acl, List<string> lines)
+        {
+            acl.SourceType = acl.Protocol;
+            acl.Protocol = null;
+            acl.SourceIPGroup.IPAlias = lines[1];
+
+            if (lines[2].StartsWith(AccessList.ObjectTag))
+            {
+                acl.DestinationType = lines[2];
+                acl.DestinationIPGroup.IPAlias = lines[3];
+
+                if (lines.Count > 4)
+                    acl.DestinationIPGroup.Port1 = lines[4];
+            }
+            else if (lines[2].StartsWith(AccessList.IpWildCardPrefix))
+            {
+                acl.SourceIPGroup.Port1 = lines[2];
+                acl.DestinationType = lines[3];
+                acl.DestinationIPGroup.IPAlias = lines[4];
+            }
+
+            if (lines.Count > 5)
+                acl.DestinationIPGroup.Port1 = lines[5];
+
+            return;
+        }
+
+        void ParseAccessListStepByCollectionType(AccessListStepArgs args, ParserArgs parseArgs)
+        {
+            switch (args.CollectionType)
+            {
+                case AccessListStepType.SourceIPAddress:
+                    args.Acl.SourceIPGroup.IP = GetIPAddress(args);
+                    break;
+                case AccessListStepType.SourceSubnet:
+                    args.Acl.SourceIPGroup.Subnet = GetIPAddress(args);
+                    break;
+                case AccessListStepType.SourceAlias:
+                    args.Acl.SourceIPGroup.IPAlias = args.Line;
+                    break;
+                case AccessListStepType.DestinationIPAddress:
+                    args.Acl.DestinationIPGroup.IP = GetIPAddress(args);
+                    break;
+                case AccessListStepType.DestinationSubnet:
+                    args.Acl.DestinationIPGroup.Subnet = GetIPAddress(args);
+                    break;
+                case AccessListStepType.DestinationAlias:
+                    args.Acl.DestinationIPGroup.IPAlias = args.Line;
+                    break;
+                case AccessListStepType.SourcePort:
+                    args.Acl.SourceIPGroup.Port1 = args.Line;
+                    break;
+                case AccessListStepType.SourceRange1:
+                    args.Acl.SourceIPGroup.Port1 = args.Line;
+                    args.CollectionType = AccessListStepType.SourceRange2;
+                    return;
+                case AccessListStepType.SourceRange2:
+                    args.Acl.SourceIPGroup.Port2 = args.Line;
+                    break;
+                case AccessListStepType.DestinationPort:
+                    args.Acl.DestinationIPGroup.Port1 = args.Line;
+                    break;
+                case AccessListStepType.DestinationRange1:
+                    args.Acl.DestinationIPGroup.Port1 = args.Line;
+                    args.CollectionType = AccessListStepType.DestinationRange2;
+                    return;
+                case AccessListStepType.DestinationRange2:
+                    args.Acl.DestinationIPGroup.Port2 = args.Line;
+                    break;
+                case AccessListStepType.None:
+                default:
+                    break;
+            }
+
+            args.CollectionType = AccessListStepType.None;
         }
 
         void ParseRemarksAccessList(AccessList acl, ParserArgs parseArgs)
@@ -474,6 +694,28 @@ namespace CiscoAsaNetAclParser
             return (string.Compare(value, type.ToString(), ignoreCase) == 0);
         }
         #endregion
+
+        #region Misc helper methods
+        IPAddress GetIPAddress(AccessListStepArgs args)
+        {
+            IPAddress ip = null;
+
+            if (IPAddress.TryParse(args.Line, out ip))
+                return ip;
+            else
+                return null;
+        }
+
+        bool GetIPAddress(string ipAddress, out IPAddress ip)
+        {
+            ip = null;
+
+            if (IPAddress.TryParse(ipAddress, out ip))
+                return true;
+            else
+                return false;
+        }
+        #endregion
     }
 
     public class ParserArgs
@@ -489,5 +731,29 @@ namespace CiscoAsaNetAclParser
 
         ParseResult _results = new ParseResult();
         public ParseResult Results { get { return _results; } set { _results = value; } }
+    }
+
+    public class AccessListStepArgs
+    {
+        public AccessList Acl { get; set; }
+        public string Line { get; set; }
+        public AccessListStepType CollectionType { get; set; }
+    }
+
+    public enum AccessListStepType
+    {
+        None,
+        SourceIPAddress,
+        SourceSubnet,
+        SourceAlias,
+        SourcePort,
+        SourceRange1,
+        SourceRange2,
+        DestinationIPAddress,
+        DestinationSubnet,
+        DestinationAlias,
+        DestinationPort,
+        DestinationRange1,
+        DestinationRange2
     }
 }

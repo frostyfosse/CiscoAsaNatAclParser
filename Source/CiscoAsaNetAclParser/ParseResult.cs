@@ -133,9 +133,9 @@ namespace CiscoAsaNetAclParser
                 {
                     var line = string.Join(",", acl.Sequence, AccessList.AccessListTag, acl.Name, null, null, acl.Type.ToString().ToLower(),
                                                 acl.Permission == AccessListPermission.None ? null : acl.Permission.ToString().ToLower(), acl.Protocol, 
-                                                acl.SourceType, acl.SourceIPGroup.IPAddress, acl.SourceIPGroup.Subnet, acl.SourceIPGroup.IPAlias,
-                                                acl.DestinationType, acl.DestinationIPGroup.IPAddress, acl.DestinationIPGroup.SubnetAddress, acl.DestinationIPGroup.IPAlias,
-                                                acl.PortMatchType, string.Join(" ", acl.Ports), acl.HitCount, acl.Comments.ToString());
+                                                acl.SourceType, acl.SourceIPGroup.IPAddress, acl.SourceIPGroup.Subnet, acl.SourceIPGroup.IPAlias, acl.SourceIPGroup.Port1, acl.SourceIPGroup.Port2,
+                                                acl.DestinationType, acl.DestinationIPGroup.IPAddress, acl.DestinationIPGroup.SubnetAddress, acl.DestinationIPGroup.IPAlias, acl.DestinationIPGroup.Port1, acl.DestinationIPGroup.Port2,
+                                                acl.PortMatchType, acl.HitCount, string.Format("\"{0}\"",acl.Comments.ToString().Replace("\"", null)));
 
                     lines.Add(line);
                 }
@@ -169,9 +169,9 @@ namespace CiscoAsaNetAclParser
         string[] _accessListHeaders = new[]
         {
             "Sequence", "Header", "ACL Name", "Line", "Line_Number", "ACL Type", "Permission", "Protocol",
-            "Source Type", "Source IP", "Source Subnet", "Source Alias",
-            "Destination Type", "Destination IP", "Destination Subnet", "Destination Alias",
-            "Port Match Type", "Ports", "Hit Count", "Comments"
+            "Source Type", "Source IP", "Source Subnet", "Source Alias", "Source Port 1", "Source Port 2",
+            "Destination Type", "Destination IP", "Destination Subnet", "Destination Alias", "Destination Port 1", "Destination Port 2",
+            "Port Match Type", "Hit Count", "Comments"
         };
         #endregion
         #endregion

@@ -21,10 +21,10 @@ namespace CiscoAsaNetAclParser
             {
                 if (!string.IsNullOrEmpty(IPWildCard))
                     return IPWildCard;
-                else if (IP == null)
-                    return null;
-                else
+                else if (IP != null)
                     return IP.ToString();
+                else
+                    return null;
             }
             set { }
         }
@@ -46,5 +46,31 @@ namespace CiscoAsaNetAclParser
             set { }
         }
 
+        public string Port1 { get; set; }
+        public string Port2 { get; set; }
+
+        public bool HasMinimumIPCriteria
+        {
+            get
+            {
+                if (IP == null &&
+                    string.IsNullOrEmpty(IPWildCard) &&
+                    string.IsNullOrEmpty(IPAlias))
+                    return false;
+                else
+                    return true;
+            }
+        }
+
+        public bool HasAlias
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(IPAlias))
+                    return false;
+                else
+                    return true;
+            }
+        }
     }
 }
