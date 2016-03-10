@@ -28,6 +28,7 @@ namespace CiscoAsaNetAclParser
             objectNetworkFilenameLabel2.Text = ObjectNetworkFileName;
             SelectedOutputDirectory = _defaultOutputDirectory;
             outputPath.Text = SelectedOutputDirectory;
+
         }
 
         static string FileDateFormat = string.Join("", DateTime.Now.Year, 
@@ -46,13 +47,23 @@ namespace CiscoAsaNetAclParser
 
         public string SelectedOutputDirectory { get; private set; }
 
+        enum MainMenuOption
+        {
+            [Description("Open Log File")]
+            OpenLogFile,
+            [Description("Open Output Directory")]
+            OpenOutputDirectory,
+            [Description("Close")]
+            Close
+        }
+
         #region event methods
-        void clearButton_Click(object sender, EventArgs e)
+        void ClearDataInWindow(object sender, EventArgs e)
         {
             logContent.Clear();
         }
 
-        void parseButton_Click(object sender, EventArgs e)
+        void GenerateOutputFiles(object sender, EventArgs e)
         {
             var value = logContent.Text;
 
@@ -66,19 +77,24 @@ namespace CiscoAsaNetAclParser
             }
         }
 
-        void logContent_TextChanged(object sender, EventArgs e)
+        void DataInWindowChangedEvent(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(logContent.Text))
-            {
-                CiscoAsaNetAclParser.Properties.Settings.Default.EnableButtons = false;
-            }
+                UpdateEnabledStatus(false);
             else
-                CiscoAsaNetAclParser.Properties.Settings.Default.EnableButtons = true;
+                UpdateEnabledStatus(true);
 
             UpdateStatus(null, StatusType.None, Color.Black);
         }
 
-        void openLogButton_Click(object sender, EventArgs e)
+        void UpdateEnabledStatus(bool enabled)
+        {
+            generateOutputMenu.Enabled = enabled;
+            clearWindowMenu.Enabled = enabled;
+            CiscoAsaNetAclParser.Properties.Settings.Default.EnableButtons = enabled;
+        }
+
+        void OpenLogFile(object sender, EventArgs e)
         {
             if (!File.Exists(_logFilePath))
                 MessageBox.Show("There is no log activity to display yet.", "Log File", MessageBoxButtons.OK, MessageBoxIcon.Question);
@@ -86,7 +102,7 @@ namespace CiscoAsaNetAclParser
                 Process.Start(_logFilePath);
         }
 
-        void browseButton_Click(object sender, EventArgs e)
+        void BrowseFoldersForOutputDirectory(object sender, EventArgs e)
         {
             var browser = new FolderBrowserDialog()
             {
@@ -146,7 +162,9 @@ namespace CiscoAsaNetAclParser
                     RaiseCompleteStatus(ObjectNetworkFileName, AccessListFilename);
                 
                 //Opening Directory
-                Process.Start(SelectedOutputDirectory);
+                //Process.Start(SelectedOutputDirectory);
+                Process.Start(Path.Combine(SelectedOutputDirectory, AccessListFilename));
+                Process.Start(Path.Combine(SelectedOutputDirectory, ObjectNetworkFileName));
             }
             catch (Exception e)
             {
@@ -171,7 +189,7 @@ namespace CiscoAsaNetAclParser
             RaiseErrorStatus(result.Title, true);
         }
 
-        //Not something the user wants
+        //Not something the user wants, but wanted to keep around
         void WriteOutputToXml(ParseResult result, string xmlFilePath, string csvFilePath)
         {
             var serializer = new XmlSerializer(result.ObjectNetworkResults.GetType(),
@@ -268,6 +286,21 @@ namespace CiscoAsaNetAclParser
         void LogEventToFile(string text, StatusType statusType)
         {
             File.AppendAllText(_logFilePath, string.Format("{0} {1} - {2}", DateTime.Now, statusType.ToString(), text));
+        }
+
+        private void toolStripComboBox1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        void OpenOutputDirectory(object sender, EventArgs e)
+        {
+            Process.Start(SelectedOutputDirectory);
+        }
+
+        void CloseApp(object sender, EventArgs e)
+        {
+            Application.Exit();
         }
     }
 }

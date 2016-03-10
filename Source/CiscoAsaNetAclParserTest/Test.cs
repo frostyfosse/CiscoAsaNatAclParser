@@ -18,7 +18,16 @@ namespace CiscoAsaNetAclParserTest
             var parser = new Parser();
             var result = parser.Parse(new[] { value });
 
-            Assert.IsTrue(result.AccessListResults.Count() > 0);
+            Assert.IsTrue(result.AccessListResults.Count() == 1);
+            Assert.IsTrue(result.AccessListResults.First().AccessLists.Count == 1);
+
+            var accessList = result.AccessListResults.First().AccessLists.First();
+
+            Assert.IsNotNull(accessList.Name);
+            Assert.IsTrue(accessList.Permission == AccessListPermission.Permit);
+            Assert.IsTrue(accessList.Type == AccessListType.Standard);
+            Assert.IsTrue(accessList.SourceIPGroup.IPAddress == "10.251.27.0");
+            Assert.IsTrue(accessList.SourceIPGroup.SubnetAddress == "255.255.255.0");
         }
 
         [TestMethod]
@@ -29,15 +38,13 @@ namespace CiscoAsaNetAclParserTest
             var parser = new Parser();
             var parseResults = parser.Parse(lines);
             var results = parseResults.ObjectNetworkResults;
-        }
 
-        [TestMethod]
-        public void TestJunk()
-        {
-            var list = new List<string>();
-
-
-            Assert.IsTrue(string.Compare("My String", "my string", true) == 0);
+            Assert.IsTrue(results.Count == 3);
+            Assert.IsTrue(results[0].IPGroup.IPAddress == "192.168.1.5" && results[0].IPGroup.Subnet == null);
+            Assert.IsTrue(results[0].NatIPAddress == "208.97.227.215");
+            Assert.IsTrue(results[1].Name == "Someone2");
+            Assert.IsTrue(results[2].IPGroup.IPAddress == "192.168.1.6");
+            Assert.IsTrue(results[2].IPGroup.SubnetAddress == "255.255.255.0");
         }
 
         string[] GetSampleObjectNetworkData()
@@ -67,7 +74,5 @@ object network SuperCool_Object_withsubnet
 
             return lines;
         }
-
-
     }
 }
