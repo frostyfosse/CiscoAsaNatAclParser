@@ -18,7 +18,7 @@ namespace CiscoAsaNetAclParser
         public const string IpWildCardPrefix = "any";
 
         //Values that can be identified at the end of the Object Network configuration collection
-        public const string ObjectGroupNetworkTag = "object-group network";
+        public const string ObjectGroupTag = "object-group";
         public const string ObjectServiceTag = "object service";
         public const string ObjectTag = "object";
         public const string AccessGroupTag = "access-group";

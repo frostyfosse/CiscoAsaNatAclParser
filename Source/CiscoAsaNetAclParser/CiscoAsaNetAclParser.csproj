@@ -44,6 +44,7 @@
     <Compile Include="AccessListCollection.cs" />
     <Compile Include="AclObjectBase.cs" />
     <Compile Include="IPSubnetGroup.cs" />
+    <Compile Include="ObjectGroup.cs" />
     <Compile Include="ObjectNetwork.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="ParseResult.cs" />

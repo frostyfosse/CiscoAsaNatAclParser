@@ -174,6 +174,25 @@ namespace CiscoAsaNetAclParser
             "Port Match Type", "Hit Count", "Comments"
         };
         #endregion
+
+        #region ObjectGroup items
+        List<ObjectGroup> _objectGroup;
+
+        public List<ObjectGroup> ObjectGroup
+        {
+            get
+            {
+                if (_objectGroup == null)
+                    _objectGroup = new List<ObjectGroup>();
+
+                return _objectGroup;
+            }
+            set
+            {
+                _objectGroup = value;
+            }
+        }
+        #endregion
         #endregion
     }
 }

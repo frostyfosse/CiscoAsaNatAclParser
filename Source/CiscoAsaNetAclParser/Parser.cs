@@ -61,7 +61,6 @@ namespace CiscoAsaNetAclParser
 
             for (int i = 0; i < 1; i++)
             {
-
                 foreach (var objectNetwork in args.Results.ObjectNetworkResults)
                 {
                     args.CurrentItem = objectNetwork.Name;
@@ -197,7 +196,7 @@ namespace CiscoAsaNetAclParser
                 }
                 else
                     aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the host or subnet ip.", focusedObjectNetwork.IPGroup.IPAlias,
-                                                                                                                                                              ObjectNetwork.ObjectGroupNetworkTag,
+                                                                                                                                                              ObjectNetwork.ObjectGroupTag,
                                                                                                                                                               focusedObjectNetwork.Name);
             }
             if (!string.IsNullOrEmpty(focusedObjectNetwork.NatIPAlias))
@@ -208,7 +207,7 @@ namespace CiscoAsaNetAclParser
                     focusedObjectNetwork.NatIP = aliasNetwork.IPGroup.IP != null ? aliasNetwork.IPGroup.IP : aliasNetwork.NatIP;
                 else
                     aliasErrorMessage = string.Format("Unable to find alias '{0}' for {1} '{2}'. This name was an alias provided for the NatIP.", focusedObjectNetwork.NatIPAlias,
-                                                                                                                                                  ObjectNetwork.ObjectGroupNetworkTag,
+                                                                                                                                                  ObjectNetwork.ObjectGroupTag,
                                                                                                                                                   focusedObjectNetwork.Name);
             }
 
@@ -294,7 +293,7 @@ namespace CiscoAsaNetAclParser
             else if (trimmedValue.StartsWith(ObjectNetwork.DescriptionTag))
                 return ObjectNetworkTagOption.Description;
             else if (trimmedValue.StartsWith(ObjectNetwork.ObjectNetworkTag) ||
-                     trimmedValue.StartsWith(ObjectNetwork.ObjectGroupNetworkTag) ||
+                     trimmedValue.StartsWith(ObjectNetwork.ObjectGroupTag) ||
                      trimmedValue.StartsWith(ObjectNetwork.AccessGroupTag) ||
                      trimmedValue.StartsWith(ObjectNetwork.ObjectServiceTag) ||
                      trimmedValue.StartsWith(ObjectNetwork.ObjectTag))
@@ -523,7 +522,7 @@ namespace CiscoAsaNetAclParser
             }
         }
 
-        private static void MicroManageExtendedAccessList(AccessList acl, List<string> lines)
+        void MicroManageExtendedAccessList(AccessList acl, List<string> lines)
         {
             acl.SourceType = acl.Protocol;
             acl.Protocol = null;
@@ -692,6 +691,13 @@ namespace CiscoAsaNetAclParser
         bool CompareIfMatch(string value, AccessListPermission type, bool ignoreCase = true)
         {
             return (string.Compare(value, type.ToString(), ignoreCase) == 0);
+        }
+        #endregion
+
+        #region Object-Groups
+        void ParseObjectGroupCollection(ParserArgs args)
+        {
+
         }
         #endregion
 
