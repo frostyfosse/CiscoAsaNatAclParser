@@ -539,12 +539,12 @@ namespace CiscoAsaNetAclParser
             else if (lines[2].StartsWith(AccessList.IpWildCardPrefix) && 
                      lines.Count == 4)
             {
-                acl.SourceIPGroup.IPAddress = lines[2];
-                acl.DestinationIPGroup.IPAddress = lines[3];
+                acl.SourceIPGroup.IPWildCard = lines[2];
+                acl.DestinationIPGroup.IPWildCard = lines[3];
             }
             else if (lines[2].StartsWith(AccessList.IpWildCardPrefix))
             {
-                acl.SourceIPGroup.IPAddress = lines[2];
+                acl.SourceIPGroup.IPWildCard = lines[2];
                 acl.DestinationType = lines[3];
                 acl.DestinationIPGroup.IPAlias = lines[4];
             }

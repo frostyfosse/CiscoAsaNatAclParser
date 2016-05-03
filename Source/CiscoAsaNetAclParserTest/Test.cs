@@ -58,6 +58,33 @@ namespace CiscoAsaNetAclParserTest
             Assert.IsTrue(parserResults.AccessListResults.Count == 1);
         }
 
+        [TestMethod]
+        public void TestToughIPReference()
+        {
+            var line = "access-list inside_access_in extended permit object-group mgmtzone_to_client_services object mgmtzone_servers any";
+            //access-list inside_access_in extended permit object-group mgmtzone_to_client_services object mgmtzone_servers any 
+
+            var parser = new Parser();
+            var parserResults = parser.Parse(new[] { line });
+            var results = parserResults.AccessListResults;
+
+            Assert.IsTrue(results.Count() == 1);
+            Assert.IsTrue(results.First().AccessLists.Count == 1);
+
+            var accessList = results.First().AccessLists.First();
+
+            Assert.IsNotNull(accessList.DestinationIPGroup.Port1); //I'm not sure if this test is correct...
+        }
+
+        [TestMethod]
+        public void TestSourceAndDestinationIPAnyWithObjectGroup()
+        {
+            var line = "access-list inside_access_in extended permit udp any any object-group UDP-Common_Internet_Services";
+
+            var parser = new Parser();
+            var parserResults = parser.Parse(new[] { line });
+        }
+
         string[] GetSampleObjectNetworkData()
         {
             var value = @"object network SuperCool_Object_host

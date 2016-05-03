@@ -131,13 +131,37 @@ namespace CiscoAsaNetAclParser
             {
                 foreach(var acl in aclCollection.AccessLists)
                 {
-                    var line = string.Join(",", acl.Sequence, AccessList.AccessListTag, acl.Name, null, null, acl.Type.ToString().ToLower(),
-                                                acl.Permission == AccessListPermission.None ? null : acl.Permission.ToString().ToLower(), acl.Protocol, 
-                                                acl.SourceType, acl.SourceIPGroup.IPAddress, acl.SourceIPGroup.Subnet, acl.SourceIPGroup.IPAlias, acl.SourceIPGroup.Port1, acl.SourceIPGroup.Port2,
-                                                acl.DestinationType, acl.DestinationIPGroup.IPAddress, acl.DestinationIPGroup.SubnetAddress, acl.DestinationIPGroup.IPAlias, acl.DestinationIPGroup.Port1, acl.DestinationIPGroup.Port2,
-                                                acl.PortMatchType, acl.HitCount, string.Format("\"{0}\"",acl.Comments.ToString().Replace("\"", null)));
+                    var aclLines = new List<string>();
+                    aclLines.Add(Convert.ToString(acl.Sequence));
+                    aclLines.Add(AccessList.AccessListTag);
+                    aclLines.Add(acl.Name);
+                    aclLines.AddRange(new[] { string.Empty, string.Empty }); //placeholders
+                    aclLines.Add(acl.Type.ToString().ToLower());
+                    aclLines.Add(acl.Permission == AccessListPermission.None ? null : acl.Permission.ToString().ToLower());
+                    aclLines.Add(acl.Protocol);
+                    aclLines.Add(acl.SourceType);
+                    aclLines.Add(string.IsNullOrEmpty(acl.SourceIPGroup.IPAddress) ? acl.SourceIPGroup.IPAddress : acl.SourceIPGroup.IPWildCard);
+                    aclLines.Add(acl.SourceIPGroup.SubnetAddress);
+                    aclLines.Add(acl.SourceIPGroup.IPAlias);
+                    aclLines.Add(acl.SourceIPGroup.Port1);
+                    aclLines.Add(acl.SourceIPGroup.Port2);
+                    aclLines.Add(acl.DestinationType);
+                    aclLines.Add(acl.DestinationIPGroup.IPAddress != null ? acl.DestinationIPGroup.IPAddress : acl.DestinationIPGroup.IPWildCard);
+                    aclLines.Add(acl.DestinationIPGroup.SubnetAddress);
+                    aclLines.Add(acl.DestinationIPGroup.IPAlias);
+                    aclLines.Add(acl.DestinationIPGroup.Port1);
+                    aclLines.Add(acl.DestinationIPGroup.Port2);
+                    aclLines.Add(acl.PortMatchType);
+                    aclLines.Add(acl.HitCount);
+                    aclLines.Add(string.Format("\"{0}\"", acl.Comments.ToString().Replace("\"", null)));
 
-                    lines.Add(line);
+                    //var line = string.Join(",", acl.Sequence, AccessList.AccessListTag, acl.Name, null, null, acl.Type.ToString().ToLower(),
+                    //                            acl.Permission == AccessListPermission.None ? null : acl.Permission.ToString().ToLower(), acl.Protocol, 
+                    //                            acl.SourceType, acl.SourceIPGroup.IPAddress, acl.SourceIPGroup.Subnet, acl.SourceIPGroup.IPAlias, acl.SourceIPGroup.Port1, acl.SourceIPGroup.Port2,
+                    //                            acl.DestinationType, acl.DestinationIPGroup.IPAddress, acl.DestinationIPGroup.SubnetAddress, acl.DestinationIPGroup.IPAlias, acl.DestinationIPGroup.Port1, acl.DestinationIPGroup.Port2,
+                    //                            acl.PortMatchType, acl.HitCount, string.Format("\"{0}\"",acl.Comments.ToString().Replace("\"", null)));
+
+                    lines.Add(string.Join(",", aclLines));
                 }
             }
 
