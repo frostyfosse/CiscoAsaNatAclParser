@@ -1,0 +1,623 @@
+HPS-TP-MGMT-FW1# show running-config 
+: Saved
+: 
+: Serial Number: JMX1208Z0RM
+: Hardware:   ASA5505, 256 MB RAM, CPU Geode 500 MHz
+:
+ASA Version 8.4(7)30 
+!
+terminal width 132
+hostname HPS-TP-MGMT-FW1
+domain-name hpsmgmt.local
+enable password UyO/p0An0NtTgym1 encrypted
+passwd 2KFQnbNIdI.2KYOU encrypted
+names
+!
+interface Ethernet0/0
+ description 104.153.172.64/26 ARIN public IP block [outside]
+ switchport access vlan 902
+!
+interface Ethernet0/1
+ shutdown
+!
+interface Ethernet0/2
+ description 10.254.247.0/26 Management network [inside]
+ switchport access vlan 611
+!
+interface Ethernet0/3
+!
+interface Ethernet0/4
+!
+interface Ethernet0/5
+!
+interface Ethernet0/6
+!
+interface Ethernet0/7
+!
+interface Vlan1
+ no nameif
+ security-level 0
+ no ip address
+!
+interface Vlan611
+ description 10.254.247.0/26 Management routing network
+ nameif inside
+ security-level 100
+ ip address 10.254.247.44 255.255.255.192 
+!
+interface Vlan902
+ description 104.153.172.64/26 ARIN public IP block [outside]
+ nameif outside
+ security-level 0
+ ip address 104.153.172.68 255.255.255.192 
+!
+boot system disk0:/asa847-30-k8.bin
+ftp mode passive
+clock timezone EST -5
+clock summer-time EDT recurring
+dns server-group DEVlocalDNS
+ domain-name dev.local
+dns server-group DefaultDNS
+ domain-name hpsmgmt.local
+dns server-group HPSlocalDNS
+ domain-name hps.local
+object network mgmtzone_LAN
+ subnet 10.254.240.0 255.255.240.0
+object network mgmtzone_servers
+ subnet 10.254.244.0 255.255.255.0
+object network HPS_Global_DataCenter
+ host 208.97.227.225
+object network RA-Remote-IPs
+ subnet 10.254.255.0 255.255.255.0
+object network HPS_DEV_LAN
+ subnet 10.20.0.0 255.255.0.0
+object network HPS1SWAPP1
+ host 10.254.244.5
+ description HPS SolarWinds Server
+object network HPS_TP_PROD_LAN
+ subnet 10.120.10.0 255.255.254.0
+ description HPS Cloud HCI Production Subnet
+object network mgmtzone_routing
+ subnet 10.254.247.0 255.255.255.0
+object network mgmtzone_RA-VPN
+ subnet 10.254.255.0 255.255.255.0
+object network hps6dc1
+ host 10.254.244.25
+ description mgmtzone domain controller
+object network hps6term1
+ host 10.254.244.40
+ description mgmtzone terminal server
+object network hps1swapp1
+ host 10.254.244.5
+ description Solarwinds server
+object network hps6wsus1
+ host 10.254.244.30
+ description mgmtzone wsus server
+object network hpsorion1
+ host 10.254.244.20
+ description Orion Server Application Monitor (SAM)
+object service wsus
+ service tcp destination eq 8530 
+object service rdp
+ service tcp destination eq 3389 
+object network HPS-MGMT-LAN
+ subnet 10.254.240.0 255.255.240.0
+object network IronBostonLAN1
+ subnet 172.20.200.0 255.255.252.0
+object service sflow
+ service udp destination eq 6343 
+object-group service Solarwinds_Services
+ description External services used by SolarWinds
+ service-object tcp destination eq https 
+ service-object udp destination eq syslog 
+ service-object udp destination eq snmptrap 
+ service-object tcp destination eq ftp 
+ service-object tcp destination eq ftp-data 
+ service-object tcp destination eq 2055 
+ service-object udp destination eq 2055 
+ service-object udp destination eq tftp 
+object-group network IronBostonLANS
+ network-object object IronBostonLAN1
+object-group network rfc1918
+ network-object 10.0.0.0 255.0.0.0
+ network-object 172.16.0.0 255.240.0.0
+ network-object 192.168.0.0 255.255.0.0
+object-group network mgmtzone_wmi_servers
+ description servers in mgmtzone allowed to perform wmi querries
+ network-object object hps6dc1
+ network-object object hps6term1
+ network-object object hps6wsus1
+ network-object object hpsorion1
+ network-object object hps1swapp1
+object-group service wmi
+ service-object tcp destination eq 135 
+ service-object tcp destination range 1024 65535 
+ service-object tcp destination eq 1433 
+ service-object tcp destination eq 1434 
+object-group service client_to_mgmtzone_services
+ description client to mgmtzone allowed services
+ service-object object wsus 
+ service-object icmp 
+ service-object tcp-udp destination eq tacacs 
+ service-object udp destination eq syslog 
+ service-object udp destination eq snmp 
+ service-object udp destination eq snmptrap 
+ service-object udp destination eq domain 
+object-group service mgmtzone_to_client_services
+ description mgmtzone to client allowed services
+ service-object object rdp 
+ service-object object wsus 
+ service-object icmp 
+ service-object tcp-udp destination eq domain 
+ service-object tcp destination eq www 
+ service-object tcp destination eq https 
+ service-object tcp destination eq ssh 
+ service-object tcp destination eq ldap 
+ service-object tcp destination eq smtp 
+ service-object udp destination eq snmp 
+ service-object udp destination eq snmptrap 
+ service-object tcp destination eq telnet 
+ service-object tcp-udp destination eq tacacs 
+object-group service TCP-Common_Internet_Services tcp
+ description TCP-only Protocols allowed out to the Internet by internal users
+ port-object eq domain
+ port-object eq echo
+ port-object eq ftp
+ port-object eq ftp-data
+ port-object eq www
+ port-object eq https
+ port-object eq ldap
+ port-object eq ssh
+ port-object range 3000 3003
+ port-object range 3007 3007
+ port-object range 5800 5800
+ port-object range 5900 5900
+ port-object range 7000 7003
+ port-object range 8800 8800
+ port-object range 5000 5003
+ port-object range 1433 1433
+ port-object range 9999 9999
+ port-object range 42 42
+ port-object range 14996 14998
+ port-object eq 9091
+object-group service UDP-Common_Internet_Services udp
+ description UDP-only Protocols allowed out to the Internet by internal users
+ port-object eq bootpc
+ port-object eq bootps
+ port-object eq domain
+ port-object eq echo
+ port-object eq isakmp
+ port-object eq ntp
+ port-object eq time
+ port-object range 10000 10000
+ port-object range 4500 4500
+ port-object range 3005 3005
+ port-object range 5000 5003
+ port-object range 1433 1433
+ port-object eq syslog
+ port-object range nameserver nameserver
+ port-object eq 9091
+object-group protocol IP-Common_Internet_Services
+ description IP Protocols allowed out to the Internet by internal users
+ protocol-object gre
+ protocol-object esp
+ protocol-object ah
+object-group icmp-type AllowedICMP
+ icmp-object echo
+ icmp-object echo-reply
+ icmp-object mask-reply
+ icmp-object redirect
+ icmp-object time-exceeded
+ icmp-object timestamp-reply
+ icmp-object traceroute
+ icmp-object unreachable
+object-group network Mimecasts-SEG-list
+ network-object 207.211.30.0 255.255.255.0
+ network-object 207.211.31.0 255.255.255.128
+ network-object 205.139.110.0 255.255.254.0
+object-group network LLANS_4_IronWood
+ network-object object HPS-MGMT-LAN
+object-group network socialwellth_tulsa_lans
+ network-object 192.168.201.0 255.255.255.0
+ network-object 192.168.25.0 255.255.255.0
+ network-object 192.168.26.0 255.255.255.0
+ network-object 192.168.27.0 255.255.255.0
+ network-object 192.168.51.0 255.255.255.0
+ network-object 192.168.52.0 255.255.255.0
+ network-object 192.168.53.0 255.255.255.0
+ network-object 192.168.54.0 255.255.255.0
+ network-object 192.168.55.0 255.255.255.0
+ network-object 192.168.56.0 255.255.255.0
+ network-object 192.168.57.0 255.255.255.0
+object-group network portugal_production_lans
+ network-object 192.168.100.0 255.255.255.0
+ network-object 10.151.136.0 255.255.255.0
+object-group service network_monitoring
+ description minimum list of Application Performance Monitoring (APM) ports necessary for Solarwinds
+ service-object tcp destination eq 135 
+ service-object tcp destination eq netbios-ssn 
+ service-object tcp destination eq 445 
+ service-object udp destination eq netbios-ns 
+ service-object udp destination eq netbios-dgm 
+ service-object tcp destination range 1024 65535 
+ service-object tcp destination eq 1433 
+ service-object tcp destination eq 1434 
+ service-object tcp-udp destination eq 2055 
+ service-object object sflow 
+object-group service vcenter_client
+ description VMWare VCenter Client ports
+ service-object tcp destination eq ssh 
+ service-object tcp destination eq www 
+ service-object tcp destination eq https 
+ service-object udp destination eq 427 
+ service-object tcp-udp destination eq 902 
+ service-object tcp destination eq 5480 
+ service-object tcp destination eq 9084 
+ service-object tcp destination eq 9443 
+ service-object tcp destination eq 10443 
+object-group network mgmtzone_network_monitor_servers
+ description servers in mgmtzone allowed to perform full APM queries
+ network-object object hps1swapp1
+object-group service domain_trust_services
+ service-object tcp-udp destination eq 389 
+ service-object tcp destination eq 135 
+ service-object tcp destination eq ldaps 
+ service-object tcp destination eq 3268 
+ service-object tcp destination eq 3269 
+ service-object tcp-udp destination eq domain 
+ service-object tcp destination eq 88 
+ service-object tcp destination eq 445 
+ service-object udp destination eq netbios-ns 
+ service-object udp destination eq netbios-dgm 
+ service-object tcp destination eq netbios-ssn 
+ service-object tcp destination eq 42 
+access-list outside_access_in extended permit object-group Solarwinds_Services any object HPS1SWAPP1 
+access-list outside_access_in extended permit icmp any any 
+access-list hps_access_in extended permit icmp any any 
+access-list inside_access_in extended permit object-group mgmtzone_to_client_services object mgmtzone_servers any 
+access-list inside_access_in extended permit object-group network_monitoring object-group mgmtzone_network_monitor_servers any 
+access-list inside_access_in extended permit object-group vcenter_client object hps6term1 any 
+access-list inside_access_in extended permit object-group domain_trust_services object mgmtzone_servers any 
+access-list inside_access_in extended permit object-group wmi object-group mgmtzone_wmi_servers any 
+access-list inside_access_in extended permit icmp any any 
+access-list inside_access_in extended deny ip any object-group rfc1918 
+access-list inside_access_in remark Permit inside users to access the Internet (IP-protocols)
+access-list inside_access_in extended permit object-group IP-Common_Internet_Services any any 
+access-list inside_access_in remark Permit inside users to access the Internet (UDP-only services)
+access-list inside_access_in extended permit udp any any object-group UDP-Common_Internet_Services 
+access-list inside_access_in remark Permit inside users to access the Internet (TCP-only services)
+access-list inside_access_in extended permit tcp any any object-group TCP-Common_Internet_Services 
+access-list inside_access_in remark Permit PING-Traceroute to the Internet
+access-list inside_access_in extended permit icmp any any object-group AllowedICMP 
+access-list RA-mgmtzone-VPN-GRP_splitTunnelAcl standard permit 10.20.0.0 255.255.0.0 
+access-list RA-mgmtzone-VPN-GRP_splitTunnelAcl standard permit 10.254.240.0 255.255.248.0 
+access-list RA-mgmtzone-VPN-GRP_splitTunnelAcl standard permit 10.254.248.0 255.255.252.0 
+access-list RA-mgmtzone-VPN-GRP_splitTunnelAcl standard permit 10.254.252.0 255.255.254.0 
+access-list RA-mgmtzone-VPN-GRP_splitTunnelAcl standard permit 10.254.254.0 255.255.255.0 
+access-list RA-mgmtzone-VPN-GRP_splitTunnelAcl standard permit 10.120.10.0 255.255.254.0 
+access-list Ironwood_L2L_ACL extended permit ip object-group LLANS_4_IronWood object-group IronBostonLANS 
+access-list outside_cryptomap_socialwellth_tulsa extended permit ip object mgmtzone_LAN object-group socialwellth_tulsa_lans 
+access-list inside_access_out remark Limit access to management-zone resources
+access-list inside_access_out extended permit object-group client_to_mgmtzone_services object-group rfc1918 object mgmtzone_servers log alerts 
+access-list inside_access_out extended permit icmp any object mgmtzone_LAN log alerts 
+access-list inside_access_out extended deny ip object-group rfc1918 object mgmtzone_LAN log alerts 
+access-list inside_access_out extended permit ip any any 
+access-list outside_cryptomap_portugal_prod extended permit ip object mgmtzone_LAN object-group portugal_production_lans 
+pager lines 24
+logging enable
+logging timestamp
+logging emblem
+logging buffer-size 100000
+logging console alerts
+logging monitor alerts
+logging buffered alerts
+logging trap informational
+logging asdm informational
+logging host inside 10.254.244.5
+logging host inside 10.254.244.7
+no logging message 401004
+logging rate-limit 100 1 level 6
+flow-export template timeout-rate 1
+flow-export delay flow-create 60
+mtu inside 1500
+mtu outside 1500
+ip local pool RA-mgmtzone-Pool 10.254.255.10-10.254.255.100 mask 255.255.255.0
+icmp unreachable rate-limit 1 burst-size 1
+icmp permit any inside
+icmp permit any outside
+no asdm history enable
+arp timeout 14400
+no arp permit-nonconnected
+nat (inside,outside) source static mgmtzone_LAN mgmtzone_LAN destination static RA-Remote-IPs RA-Remote-IPs no-proxy-arp route-lookup
+nat (inside,outside) source static HPS_DEV_LAN HPS_DEV_LAN destination static RA-Remote-IPs RA-Remote-IPs no-proxy-arp route-lookup
+nat (inside,outside) source static HPS_TP_PROD_LAN HPS_TP_PROD_LAN destination static RA-Remote-IPs RA-Remote-IPs no-proxy-arp route-lookup
+nat (inside,outside) source static LLANS_4_IronWood LLANS_4_IronWood destination static IronBostonLANS IronBostonLANS no-proxy-arp route-lookup
+nat (inside,outside) source static mgmtzone_LAN mgmtzone_LAN destination static socialwellth_tulsa_lans socialwellth_tulsa_lans no-proxy-arp route-lookup
+nat (inside,outside) source static mgmtzone_LAN mgmtzone_LAN destination static portugal_production_lans portugal_production_lans no-proxy-arp route-lookup
+!
+object network mgmtzone_LAN
+ nat (inside,outside) dynamic interface
+object network HPS1SWAPP1
+ nat (inside,outside) static 104.153.173.100
+access-group inside_access_in in interface inside
+access-group inside_access_out out interface inside
+access-group outside_access_in in interface outside
+route outside 0.0.0.0 0.0.0.0 104.153.172.65 1
+route inside 10.20.0.0 255.255.0.0 10.254.247.1 1
+route inside 10.120.10.0 255.255.254.0 10.254.247.4 1
+route inside 10.254.240.0 255.255.240.0 10.254.247.1 1
+route inside 10.254.244.0 255.255.255.0 10.254.247.1 1
+timeout xlate 3:00:00
+timeout pat-xlate 0:00:30
+timeout conn 1:00:00 half-closed 0:10:00 udp 0:02:00 icmp 0:00:02
+timeout sunrpc 0:10:00 h323 0:05:00 h225 1:00:00 mgcp 0:05:00 mgcp-pat 0:05:00
+timeout sip 0:30:00 sip_media 0:02:00 sip-invite 0:03:00 sip-disconnect 0:02:00
+timeout sip-provisional-media 0:02:00 uauth 0:05:00 absolute
+timeout tcp-proxy-reassembly 0:01:00
+timeout floating-conn 0:00:00
+dynamic-access-policy-record DfltAccessPolicy
+aaa-server mgmtzone-Radius protocol radius
+aaa-server mgmtzone-Radius (inside) host 10.254.244.25
+ key *****
+ radius-common-pw *****
+aaa-server HPS_AAA protocol tacacs+
+ reactivation-mode depletion deadtime 5
+ max-failed-attempts 2
+aaa-server HPS_AAA (inside) host 10.254.244.25
+ key *****
+user-identity default-domain LOCAL
+aaa authentication ssh console HPS_AAA LOCAL
+aaa authentication enable console HPS_AAA LOCAL
+aaa authentication http console HPS_AAA LOCAL
+aaa authentication serial console HPS_AAA LOCAL
+aaa authorization command HPS_AAA LOCAL
+aaa accounting command privilege 15 HPS_AAA
+aaa accounting ssh console HPS_AAA
+aaa accounting serial console HPS_AAA
+aaa authorization exec authentication-server
+http server enable
+http 0.0.0.0 0.0.0.0 inside
+http 50.77.92.33 255.255.255.255 outside
+http 74.199.182.34 255.255.255.255 outside
+http 208.97.227.225 255.255.255.255 outside
+snmp-server group HPS-SNMPv3 v3 priv 
+snmp-server user hpssnmp HPS-SNMPv3 v3 encrypted auth sha e0:ab:af:86:cf:4d:71:b2:eb:94:71:f2:39:a7:d2:1d:30:38:7b:13 priv aes 128 c0:e8:42:16:fd:05:4e:71:19:7e:4e:77:a1:4d:af:e3 
+snmp-server host inside 10.254.244.5 version 3 hpssnmp
+snmp-server location HPS-TP
+snmp-server contact HPS Network Team 484-679-4528
+snmp-server community *****
+snmp-server enable traps snmp authentication linkup linkdown coldstart warmstart
+snmp-server enable traps entity config-change
+crypto ipsec ikev1 transform-set ESP-3DES-MD5 esp-3des esp-md5-hmac 
+crypto ipsec ikev1 transform-set ESP-DES-MD5 esp-des esp-md5-hmac 
+crypto ipsec ikev1 transform-set ESP-3DES-SHA esp-3des esp-sha-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-128-SHA esp-aes esp-sha-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-192-SHA esp-aes-192 esp-sha-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-128-MD5 esp-aes esp-md5-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-192-MD5 esp-aes-192 esp-md5-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-256-SHA esp-aes-256 esp-sha-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-256-MD5 esp-aes-256 esp-md5-hmac 
+crypto ipsec ikev1 transform-set ESP-DES-SHA esp-des esp-sha-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-128-SHA-TRANS esp-aes esp-sha-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-128-SHA-TRANS mode transport
+crypto ipsec ikev1 transform-set ESP-AES-128-MD5-TRANS esp-aes esp-md5-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-128-MD5-TRANS mode transport
+crypto ipsec ikev1 transform-set ESP-AES-192-SHA-TRANS esp-aes-192 esp-sha-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-192-SHA-TRANS mode transport
+crypto ipsec ikev1 transform-set ESP-AES-192-MD5-TRANS esp-aes-192 esp-md5-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-192-MD5-TRANS mode transport
+crypto ipsec ikev1 transform-set ESP-AES-256-SHA-TRANS esp-aes-256 esp-sha-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-256-SHA-TRANS mode transport
+crypto ipsec ikev1 transform-set ESP-AES-256-MD5-TRANS esp-aes-256 esp-md5-hmac 
+crypto ipsec ikev1 transform-set ESP-AES-256-MD5-TRANS mode transport
+crypto ipsec ikev1 transform-set ESP-3DES-SHA-TRANS esp-3des esp-sha-hmac 
+crypto ipsec ikev1 transform-set ESP-3DES-SHA-TRANS mode transport
+crypto ipsec ikev1 transform-set ESP-3DES-MD5-TRANS esp-3des esp-md5-hmac 
+crypto ipsec ikev1 transform-set ESP-3DES-MD5-TRANS mode transport
+crypto ipsec ikev1 transform-set ESP-DES-SHA-TRANS esp-des esp-sha-hmac 
+crypto ipsec ikev1 transform-set ESP-DES-SHA-TRANS mode transport
+crypto ipsec ikev1 transform-set ESP-DES-MD5-TRANS esp-des esp-md5-hmac 
+crypto ipsec ikev1 transform-set ESP-DES-MD5-TRANS mode transport
+crypto dynamic-map SYSTEM_DEFAULT_CRYPTO_MAP 65535 set pfs 
+crypto dynamic-map SYSTEM_DEFAULT_CRYPTO_MAP 65535 set ikev1 transform-set ESP-AES-128-SHA ESP-AES-128-MD5 ESP-AES-192-SHA ESP-AES-192-MD5 ESP-AES-256-SHA ESP-AES-256-MD5 ESP-3DES-SHA ESP-3DES-MD5 ESP-DES-SHA ESP-DES-MD5
+crypto map outside_map 10 match address outside_cryptomap_socialwellth_tulsa
+crypto map outside_map 10 set peer 67.214.106.242 
+crypto map outside_map 10 set ikev1 transform-set ESP-AES-128-SHA
+crypto map outside_map 25 match address outside_cryptomap_portugal_prod
+crypto map outside_map 25 set peer 62.28.182.170 194.79.88.89 
+crypto map outside_map 25 set ikev1 transform-set ESP-AES-128-SHA
+crypto map outside_map 100 match address Ironwood_L2L_ACL
+crypto map outside_map 100 set peer 66.159.102.4 
+crypto map outside_map 100 set ikev1 transform-set ESP-AES-128-SHA ESP-AES-256-SHA
+crypto map outside_map 65535 ipsec-isakmp dynamic SYSTEM_DEFAULT_CRYPTO_MAP
+crypto map outside_map interface outside
+crypto ikev1 enable outside
+crypto ikev1 policy 10
+ authentication crack
+ encryption aes-256
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 20
+ authentication rsa-sig
+ encryption aes-256
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 30
+ authentication pre-share
+ encryption aes-256
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 40
+ authentication crack
+ encryption aes-192
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 50
+ authentication rsa-sig
+ encryption aes-192
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 60
+ authentication pre-share
+ encryption aes-192
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 70
+ authentication crack
+ encryption aes
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 80
+ authentication rsa-sig
+ encryption aes
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 90
+ authentication pre-share
+ encryption aes
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 100
+ authentication crack
+ encryption 3des
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 110
+ authentication rsa-sig
+ encryption 3des
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 120
+ authentication pre-share
+ encryption 3des
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 130
+ authentication crack
+ encryption des
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 140
+ authentication rsa-sig
+ encryption des
+ hash sha
+ group 2
+ lifetime 86400
+crypto ikev1 policy 150
+ authentication pre-share
+ encryption des
+ hash sha
+ group 2
+ lifetime 86400
+telnet timeout 5
+ssh 0.0.0.0 0.0.0.0 inside
+ssh 50.77.92.33 255.255.255.255 outside
+ssh 74.199.182.34 255.255.255.255 outside
+ssh 208.97.227.225 255.255.255.255 outside
+ssh timeout 30
+ssh key-exchange group dh-group1-sha1
+console timeout 30
+management-access inside
+
+threat-detection basic-threat
+threat-detection statistics access-list
+no threat-detection statistics tcp-intercept
+ntp server 206.246.122.250
+webvpn
+group-policy RA-mgmtzone-VPN-GRP internal
+group-policy RA-mgmtzone-VPN-GRP attributes
+ dns-server value 10.254.244.25
+ vpn-tunnel-protocol ikev1 
+ split-tunnel-policy tunnelspecified
+ split-tunnel-network-list value RA-mgmtzone-VPN-GRP_splitTunnelAcl
+ default-domain value hpsmgmt.local
+group-policy gpo_socialwellth_tulsa_67.214.106.242 internal
+group-policy gpo_socialwellth_tulsa_67.214.106.242 attributes
+ vpn-tunnel-protocol ikev1 
+group-policy gpo_portugal_prod_62.28.182.170 internal
+group-policy gpo_portugal_prod_62.28.182.170 attributes
+ vpn-tunnel-protocol ikev1 
+group-policy ironwood_boston_gpo internal
+group-policy ironwood_boston_gpo attributes
+ vpn-tunnel-protocol ikev1 
+username hpslocal password zJ1QuMNIZbu4N2YQ encrypted privilege 15
+tunnel-group RA-mgmtzone-VPN-GRP type remote-access
+tunnel-group RA-mgmtzone-VPN-GRP general-attributes
+ address-pool RA-mgmtzone-Pool
+ authentication-server-group mgmtzone-Radius
+ default-group-policy RA-mgmtzone-VPN-GRP
+tunnel-group RA-mgmtzone-VPN-GRP ipsec-attributes
+ ikev1 pre-shared-key *****
+tunnel-group 66.159.102.4 type ipsec-l2l
+tunnel-group 66.159.102.4 general-attributes
+ default-group-policy ironwood_boston_gpo
+tunnel-group 66.159.102.4 ipsec-attributes
+ ikev1 pre-shared-key *****
+tunnel-group 67.214.106.242 type ipsec-l2l
+tunnel-group 67.214.106.242 general-attributes
+ default-group-policy gpo_socialwellth_tulsa_67.214.106.242
+tunnel-group 67.214.106.242 ipsec-attributes
+ ikev1 pre-shared-key *****
+tunnel-group 62.28.182.170 type ipsec-l2l
+tunnel-group 62.28.182.170 general-attributes
+ default-group-policy gpo_portugal_prod_62.28.182.170
+tunnel-group 62.28.182.170 ipsec-attributes
+ ikev1 pre-shared-key *****
+!             
+class-map inspection_default
+ match default-inspection-traffic
+!
+!
+policy-map type inspect dns preset_dns_map
+ parameters
+  message-length maximum client auto
+  message-length maximum 512
+policy-map global_policy
+ class inspection_default
+  inspect dns preset_dns_map 
+  inspect ftp 
+  inspect h323 h225 
+  inspect h323 ras 
+  inspect ip-options 
+  inspect netbios 
+  inspect rsh 
+  inspect rtsp 
+  inspect skinny  
+  inspect esmtp 
+  inspect sqlnet 
+  inspect sunrpc 
+  inspect tftp 
+  inspect sip  
+  inspect xdmcp 
+  inspect icmp 
+!
+service-policy global_policy global
+prompt hostname context 
+no call-home reporting anonymous
+call-home
+ profile CiscoTAC-1
+  no active
+  destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService
+  destination address email callhome@cisco.com
+  destination transport-method http
+  subscribe-to-alert-group diagnostic
+  subscribe-to-alert-group environment
+  subscribe-to-alert-group inventory periodic monthly
+  subscribe-to-alert-group configuration periodic monthly
+  subscribe-to-alert-group telemetry periodic daily
+Cryptochecksum:d848d6e884702018a5b70c0ce72f47fd
+: end
+HPS-TP-MGMT-FW1#     

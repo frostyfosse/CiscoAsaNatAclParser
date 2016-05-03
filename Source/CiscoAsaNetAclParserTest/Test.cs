@@ -47,6 +47,17 @@ namespace CiscoAsaNetAclParserTest
             Assert.IsTrue(results[2].IPGroup.SubnetAddress == "255.255.255.0");
         }
 
+        [TestMethod]
+        public void TestObjectUnusualGroupCondition()
+        {
+            var line = "access-list inside_access_in extended permit object-group IP-Common_Internet_Services any any ";
+
+            var parser = new Parser();
+            var parserResults = parser.Parse(new[] { line });
+
+            Assert.IsTrue(parserResults.AccessListResults.Count == 1);
+        }
+
         string[] GetSampleObjectNetworkData()
         {
             var value = @"object network SuperCool_Object_host
