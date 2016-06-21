@@ -167,6 +167,9 @@ namespace CiscoAsaNetAclParser
         {
             var firstSpace = line.IndexOf(" ", 0);
 
+            if (firstSpace <= 0)
+                return;
+
             var pair = new KeyValuePair<string, string>(line.Substring(0, firstSpace), 
                                                         line.Substring(firstSpace < 0 ? 0 : firstSpace));
 
@@ -641,7 +644,12 @@ namespace CiscoAsaNetAclParser
                 {
                     if (args.Results.CompletionSeverity != ResultSeverity.Errors)
                         args.Results.CompletionSeverity = ResultSeverity.Warnings;
-                    args.Results.Messages.Add(string.Format("Unknown ACL Type '{0}' for Access-list '{1}'. This line will be skipped.", stringType, name));
+
+                    var message = string.Join(Environment.NewLine,
+                                              string.Format("Unknown ACL Type '{0}' for Access-list '{1}'", stringType, name),
+                                              string.Format("Affected line in configuration (Line# {0} in access List section): {1}", sequence, line),
+                                              "This line will be skipped.");
+                    args.Results.Messages.Add(message);
 
                     continue;
                 }

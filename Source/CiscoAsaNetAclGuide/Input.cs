@@ -132,6 +132,7 @@ namespace CiscoAsaNetAclParser
 
             switch (result.CompletionSeverity)
             {
+                case ResultSeverity.Warnings:
                 case ResultSeverity.Errors:
                     WriteAndRaiseFailedResult(result);
                     return;
@@ -178,14 +179,14 @@ namespace CiscoAsaNetAclParser
 
         void WriteAndRaiseFailedResult(ParseResult result)
         {
-            var builder = new StringBuilder();
+            var logs = new List<string>();
 
             if (!string.IsNullOrEmpty(result.Title))
-                builder.AppendLine(result.Title);
+                logs.Add(result.Title);
             if (result.Messages != null)
-                result.Messages.ForEach(x => builder.AppendLine(x));
+                logs.AddRange(result.Messages);
 
-            LogEventToFile(builder.ToString(), StatusType.Error);
+            LogEventToFile(logs, StatusType.Error);
             RaiseErrorStatus(result.Title, true);
         }
 
@@ -252,7 +253,7 @@ namespace CiscoAsaNetAclParser
         void RaiseErrorStatus(string text, bool referenceLogFile = false)
         {
             var message = text;
-            var logFileReferenceIncluded = string.Join(" ", text, "Please see the log file for details.");
+            var logFileReferenceIncluded = string.Join(" ", text, ". Please see the log file for existing warnings and/or errors.");
 
             if (referenceLogFile)
                 message = logFileReferenceIncluded;
@@ -285,7 +286,19 @@ namespace CiscoAsaNetAclParser
 
         void LogEventToFile(string text, StatusType statusType)
         {
-            File.AppendAllText(_logFilePath, string.Format("{0} {1} - {2}", DateTime.Now, statusType.ToString(), text));
+            File.AppendAllLines(_logFilePath, new[] { string.Format("{0} {1} - {2}", DateTime.Now, statusType.ToString(), text) });
+        }
+
+        void LogEventToFile(IEnumerable<string> lines, StatusType statusType)
+        {
+            var logs = new List<string>();
+            foreach (var line in lines)
+            {
+                var log = string.Format("{0} {1} - {2}", DateTime.Now, statusType.ToString(), line);
+                logs.Add(log);
+            }
+
+            File.AppendAllLines(_logFilePath, logs);
         }
 
         private void toolStripComboBox1_Click(object sender, EventArgs e)
