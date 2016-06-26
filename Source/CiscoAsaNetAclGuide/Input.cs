@@ -73,7 +73,7 @@ namespace CiscoAsaNetAclParser
             }
             else
             {
-                RaiseErrorStatus("Generate failed. Must contain only text.");
+                RaiseErrorStatus(null, "Generate failed. Must contain only text.", StatusType.Error);
             }
         }
 
@@ -133,8 +133,10 @@ namespace CiscoAsaNetAclParser
             switch (result.CompletionSeverity)
             {
                 case ResultSeverity.Warnings:
+                    WriteAndRaiseFailedResult(result, StatusType.Warning);
+                    break;
                 case ResultSeverity.Errors:
-                    WriteAndRaiseFailedResult(result);
+                    WriteAndRaiseFailedResult(result, StatusType.Error);
                     return;
                 default:
                     break;
@@ -151,16 +153,23 @@ namespace CiscoAsaNetAclParser
                 //Access Network output
                 File.WriteAllLines(Path.Combine(SelectedOutputDirectory, AccessListFilename),
                                    result.GetCommaDelimitedResults(ParseResult.OutputResultType.AccessList));
-                
+
                 //Opening files
                 //Process.Start(objectNetworkFilePath);
                 //Process.Start(accessListFilePath);
 
-                if (result.CompletionSeverity == ResultSeverity.Warnings)
-                    RaiseCompleteStatus(ObjectNetworkFileName, AccessListFilename, string.Join(Environment.NewLine, "The following warnings occurred:", 
-                                                                                                                    result.Messages));
-                else
-                    RaiseCompleteStatus(ObjectNetworkFileName, AccessListFilename);
+
+
+                switch (result.CompletionSeverity)
+                {
+                    case ResultSeverity.Errors:
+                    case ResultSeverity.Warnings:
+                        RaiseCompleteStatus(ObjectNetworkFileName, AccessListFilename, string.Format("There were {0} {1}.", result.Messages.Count(), result.CompletionSeverity.ToString()));
+                        break;
+                    default:
+                        RaiseCompleteStatus(ObjectNetworkFileName, AccessListFilename);
+                        break;
+                }
                 
                 //Opening Directory
                 //Process.Start(SelectedOutputDirectory);
@@ -173,11 +182,11 @@ namespace CiscoAsaNetAclParser
                 var logDetail = string.Format("{0} {1}. {2}", DateTime.Now, title, e);
 
                 LogEventToFile(string.Join(" ", title, logDetail), StatusType.Error);
-                RaiseErrorStatus(title, true);
+                RaiseErrorStatus(result, title, StatusType.Error, true);
             }
         }
 
-        void WriteAndRaiseFailedResult(ParseResult result)
+        void WriteAndRaiseFailedResult(ParseResult result, StatusType status)
         {
             var logs = new List<string>();
 
@@ -186,8 +195,17 @@ namespace CiscoAsaNetAclParser
             if (result.Messages != null)
                 logs.AddRange(result.Messages);
 
-            LogEventToFile(logs, StatusType.Error);
-            RaiseErrorStatus(result.Title, true);
+            LogEventToFile(logs, status);
+
+            switch (status)
+            {
+                case StatusType.Warning:
+                    RaiseErrorStatus(result, result.Title, status, true);
+                    break;
+                case StatusType.Error:
+                    RaiseErrorStatus(result, result.Title, status, true);
+                    break;
+            }
         }
 
         //Not something the user wants, but wanted to keep around
@@ -229,11 +247,11 @@ namespace CiscoAsaNetAclParser
         {
             var files = string.Join(Environment.NewLine, objectNetworkFilePath, accessListFilePath);
             var mainMessage = string.Format("Complete. Results written to the following files:{0}{1}.", Environment.NewLine,
-                                                                                                        files);
+                                                                                              files);
             var fullMessage = mainMessage;
 
-            if (!string.IsNullOrEmpty(disclaimers))
-                fullMessage = string.Join(Environment.NewLine, mainMessage, disclaimers);
+            //if (!string.IsNullOrEmpty(disclaimers))
+            //    fullMessage = string.Join(Environment.NewLine, mainMessage, disclaimers);
 
             UpdateStatus(fullMessage,
                          StatusType.Complete, 
@@ -250,15 +268,33 @@ namespace CiscoAsaNetAclParser
             UpdateStatus(text, StatusType.Warning, Color.OrangeRed);
         }
 
-        void RaiseErrorStatus(string text, bool referenceLogFile = false)
+        void RaiseErrorStatus(ParseResult result, string text, StatusType status, bool referenceLogFile = false)
         {
             var message = text;
-            var logFileReferenceIncluded = string.Join(" ", text, ". Please see the log file for existing warnings and/or errors.");
+            string errorsMessage = "Please see the log file for existing warnings and / or errors.";
+
+            if (result != null && result.Messages.Count() > 0)
+                errorsMessage = string.Format("Please see the log file. There were {0} {1}.", result.Messages.Count(), result.CompletionSeverity);
+
+            var logFileReferenceIncluded = string.Format("{0}. {1}", text, errorsMessage);
+
+            Color color;
 
             if (referenceLogFile)
                 message = logFileReferenceIncluded;
 
-            UpdateStatus(message, StatusType.Error, Color.Red);
+            switch (status)
+            {
+                case StatusType.Warning:
+                    color = Color.OrangeRed;
+                    break;
+                default:
+                case StatusType.Error:
+                    color = Color.Red;
+                    break;
+            }
+
+            UpdateStatus(message, status, color);
         }
 
         void UpdateStatus(string messageText, StatusType statusType, Color foregroundColor)
